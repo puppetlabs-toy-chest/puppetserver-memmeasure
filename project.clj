@@ -8,12 +8,17 @@
 
 (defproject puppetserver-memmeasure "0.1.0-SNAPSHOT"
   :description "Runs scenarios for measuring Puppet Server memory usage"
-  :dependencies [[org.clojure/clojure "1.8.0"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+
+                 ;; begin version conflict resolution dependencies
+                 [org.clojure/tools.cli "0.3.4"]
+                 ;; end version conflict resolution dependencies
+
                  [org.clojure/tools.logging "0.3.1"]
-                 [puppetlabs/puppetserver "2.3.2"]
+                 [puppetlabs/puppetserver "2.4.0"]
                  [puppetlabs/trapperkeeper "1.4.0"]
-                 [puppetlabs/kitchensink "1.3.1"]
-                 [cheshire "5.3.1"]
+                 [puppetlabs/kitchensink "1.3.0"]
+                 [cheshire "5.6.1"]
                  [clj-time "0.11.0"]
                  [me.raynes/fs "1.4.6"]]
   :main ^:skip-aot puppetserver-memmeasure.core
