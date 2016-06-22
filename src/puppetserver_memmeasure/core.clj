@@ -6,6 +6,8 @@
              :as empty-scripting-container-scenario]
             [puppetserver-memmeasure.scenarios.initialize-puppet-in-jruby-containers
              :as init-puppet-scenario]
+            [puppetserver-memmeasure.scenarios.single-catalog-compile
+             :as single-catalog-compile-scenario]
             [puppetlabs.puppetserver.cli.subcommand :as cli]
             [puppetlabs.services.jruby.jruby-puppet-core :as jruby-puppet-core]
             [puppetlabs.kitchensink.core :as ks]
@@ -23,6 +25,7 @@
 
 (def default-output-dir "./target/mem-measure")
 (def default-num-containers 4)
+(def default-num-catalogs 4)
 
 (schema/defn ^:always-validate create-output-run-dir! :- File
   "Create a run-specific directory under the supplied base directory.
@@ -48,11 +51,13 @@
   (tk-config/initialize-logging! config)
   (let [jruby-puppet-config (jruby-puppet-core/initialize-config config)
         mem-measure-config (:mem-measure config)
-        mem-output-run-dir (or (:output-dir mem-measure-config)
-                               default-output-dir)
-        mem-output-run-dir (create-output-run-dir! mem-output-run-dir)
+        mem-output-run-dir (create-output-run-dir!
+                            (or (:output-dir mem-measure-config)
+                                default-output-dir))
         num-containers (or (:num-containers mem-measure-config)
                            default-num-containers)
+        num-catalogs (or (:num-catalogs mem-measure-config)
+                         default-num-catalogs)
         result-file (fs/file mem-output-run-dir "results.json")]
     (log/infof "Using %d containers for simulation" num-containers)
     (-> jruby-puppet-config
@@ -62,7 +67,10 @@
            :fn (partial empty-scripting-container-scenario/run-empty-scripting-containers-scenario
                         num-containers)}
           {:name "initialize puppet into scripting containers"
-           :fn init-puppet-scenario/run-initialize-puppet-in-jruby-containers-scenario}])
+           :fn init-puppet-scenario/run-initialize-puppet-in-jruby-containers-scenario}
+          {:name "compile a single catalog"
+           :fn (partial single-catalog-compile-scenario/run-single-catalog-compile-scenario
+                        num-catalogs)}])
         (cheshire/generate-stream (io/writer result-file)))
     (log/infof "Results written to: %s" (.getCanonicalPath result-file))))
 

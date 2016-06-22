@@ -54,6 +54,16 @@
                  [puppet-config puppetserver-config])
      JRubyPuppet)))
 
+(defmacro with-jruby-puppet
+  [jruby-puppet config & body]
+  `(let [scripting-container# (create-scripting-container ~config)
+         ~jruby-puppet (initialize-puppet-in-container scripting-container# ~config)]
+     (try
+       ~@body
+       (finally
+         (.terminate ~jruby-puppet)
+         (.terminate scripting-container#)))))
+
 (schema/defn take-yourkit-snapshot! :- schema/Int
   [snapshot-output-dir :- File
    snapshot-base-name :- schema/Str]
