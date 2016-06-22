@@ -1,0 +1,6 @@
+:cachedir: './target/r10k-cache'
+
+:sources:
+  :puppetserver-perf:
+    remote: 'git@github.com:puppetlabs/puppetlabs-puppetserver_perf_control'
+    basedir: './target/master-code-dir/environments'
