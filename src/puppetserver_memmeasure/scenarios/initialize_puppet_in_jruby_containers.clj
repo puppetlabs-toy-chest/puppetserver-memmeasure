@@ -34,13 +34,11 @@
    taken after each container is initialized."
   [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
-   mem-at-scenario-start :- schema/Int
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (scenario/run-scenario-body-over-steps
    (partial run-initialize-puppet-in-jruby-containers-step
             jruby-puppet-config)
    "initialize-puppet-in-container"
    mem-output-run-dir
-   mem-at-scenario-start
    scenario-context
    (:jrubies scenario-context)))

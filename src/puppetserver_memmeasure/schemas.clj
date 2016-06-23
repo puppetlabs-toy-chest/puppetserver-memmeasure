@@ -28,6 +28,7 @@
 
 (def ScenarioResult
   {:mean-mem-inc-per-additional-step schema/Num
+   :mem-at-scenario-start schema/Int
    :mem-inc-for-first-step schema/Int
    :std-dev-mem-inc-per-additional-step schema/Num
    :steps [StepResult]

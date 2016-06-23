@@ -75,9 +75,6 @@
         _ (log/infof "Running scenario: %s" scenario-name)
         scenario-output (scenario-fn jruby-puppet-config
                                      mem-output-run-dir
-                                     (get-in acc-results
-                                             [:results
-                                              :mem-used-after-last-scenario])
                                      (:context acc-results))
         mem-used-after-last-step-in-scenario (mem-after-last-step
                                               scenario-output)]
@@ -146,13 +143,17 @@
   [body-fn :- IFn
    step-base-name :- schema/Str
    mem-output-run-dir :- File
-   mem-at-scenario-start :- schema/Int
    scenario-context :- memmeasure-schemas/ScenarioContext
    steps-data :- (schema/pred coll?)]
-  (let [scenario-output
+  (let [mem-at-scenario-start (util/take-yourkit-snapshot! mem-output-run-dir
+                                                           (str
+                                                            step-base-name
+                                                            "-baseline"))
+        scenario-output
         (loop [iter 0
                acc {:context scenario-context
-                    :results {:mem-inc-for-first-step 0
+                    :results {:mem-at-scenario-start mem-at-scenario-start
+                              :mem-inc-for-first-step 0
                               :mean-mem-inc-per-additional-step 0
                               :std-dev-mem-inc-per-additional-step 0
                               :steps []}}
