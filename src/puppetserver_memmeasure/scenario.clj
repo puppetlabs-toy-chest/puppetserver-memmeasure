@@ -209,8 +209,10 @@
                          steps-data
                          mem-at-scenario-start)
         mem-following-first-step (mem-after-first-step scenario-output)
-        mem-inc-for-first-step (- mem-following-first-step
-                                  mem-at-scenario-start)
+        mem-inc-for-first-step (if mem-following-first-step
+                                 (- mem-following-first-step
+                                    mem-at-scenario-start)
+                                 0)
         mem-incs-after-first-step (-> scenario-output
                                       (get-in [:results :steps])
                                       rest
