@@ -71,6 +71,8 @@
           {:name "compile a single catalog"
            :fn (partial single-catalog-compile-scenario/run-single-catalog-compile-scenario
                         num-catalogs)}])
+        (assoc :num-containers num-containers)
+        (assoc :num-catalogs num-catalogs)
         (cheshire/generate-stream (io/writer result-file)))
     (log/infof "Results written to: %s" (.getCanonicalPath result-file))))
 

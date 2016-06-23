@@ -139,6 +139,7 @@ JSON tool (`python -m json-tool <json file>`) - from one example run:
     "mem-used-after-last-scenario": 178833600,
     "mem-used-before-first-scenario": 14352968,
     "num-containers": 4
+    "num-catalogs": 4
     "scenarios": [
         {
             "name": "create empty scripting containers",
@@ -265,3 +266,8 @@ memory measurement tool.  Options in this section include:
 * `num-containers` - The number of JRuby ScriptingContainers that the tool will
   create while running scenarios.  This setting is optional.  If it is not
   specified, 4 containers will be created.
+  
+* `num-catalogs` - The number of catalogs compiled for a combination of
+  parameters for any scenarios that involve compiling catalogs.  This setting
+  is optional.  If it is not specified, 4 catalogs will be compiled per
+  the appropriate scenarios.
