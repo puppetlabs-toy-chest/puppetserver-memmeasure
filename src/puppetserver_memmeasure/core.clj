@@ -3,9 +3,9 @@
   (:require [clojure.tools.logging :as log]
             [puppetserver-memmeasure.scenario :as scenario]
             [puppetserver-memmeasure.scenarios.empty-scripting-containers
-             :as empty-scripting-containers]
+             :as empty-scripting-container-scenario]
             [puppetserver-memmeasure.scenarios.initialize-puppet-in-jruby-containers
-             :as initialize-puppet-in-jruby-containers]
+             :as init-puppet-scenario]
             [puppetlabs.puppetserver.cli.subcommand :as cli]
             [puppetlabs.services.jruby.jruby-puppet-core :as jruby-puppet-core]
             [puppetlabs.kitchensink.core :as ks]
@@ -13,8 +13,13 @@
             [clj-time.core :as clj-time-core]
             [clj-time.format :as clj-time-format]
             [me.raynes.fs :as fs]
-            [schema.core :as schema])
-  (:import (java.io File)))
+            [schema.core :as schema]
+            [cheshire.core :as cheshire]
+            [slingshot.slingshot :refer [try+]]
+            [clojure.java.io :as io]
+            [slingshot.slingshot :as sling])
+  (:import (java.io File)
+           (clojure.lang ExceptionInfo)))
 
 (def default-output-dir "./target/mem-measure")
 (def default-num-containers 4)
@@ -39,8 +44,7 @@
 (schema/defn ^:always-validate mem-run!
   "Mainline function for the memcapture program.  Supplied with a
   decomposed config map from Trapperkeeper"
-  [config :- {schema/Keyword schema/Any}
-   _]
+  [config :- {schema/Keyword schema/Any}]
   (tk-config/initialize-logging! config)
   (let [jruby-puppet-config (jruby-puppet-core/initialize-config config)
         mem-measure-config (:mem-measure config)
@@ -48,18 +52,36 @@
                                default-output-dir)
         mem-output-run-dir (create-output-run-dir! mem-output-run-dir)
         num-containers (or (:num-containers mem-measure-config)
-                           default-num-containers)]
+                           default-num-containers)
+        result-file (fs/file mem-output-run-dir "results.json")]
     (log/infof "Using %d containers for simulation" num-containers)
-    (scenario/run-scenarios
-     jruby-puppet-config
-     mem-output-run-dir
-     num-containers
-     [{:name "create empty scripting containers"
-       :fn (partial empty-scripting-containers/run-empty-scripting-containers-scenario
-                    num-containers)}
-      {:name "initialize puppet into scripting containers"
-       :fn initialize-puppet-in-jruby-containers/run-initialize-puppet-in-jruby-containers-scenario}])))
+    (-> jruby-puppet-config
+        (scenario/run-scenarios
+         mem-output-run-dir
+         [{:name "create empty scripting containers"
+           :fn (partial empty-scripting-container-scenario/run-empty-scripting-containers-scenario
+                        num-containers)}
+          {:name "initialize puppet into scripting containers"
+           :fn init-puppet-scenario/run-initialize-puppet-in-jruby-containers-scenario}])
+        (cheshire/generate-stream (io/writer result-file)))
+    (log/infof "Results written to: %s" (.getCanonicalPath result-file))))
+
+(schema/defn mem-run-wrapper!
+  "Wrapper for the mainline function for the memcapture program.  Basically
+  just re-wraps any downstream Clojure ExceptionInfo which is thrown into
+  a slingshot exception that the cli subcommand wrapper from Puppet Server
+  should output properly, when applicable."
+  [config :- {schema/Keyword schema/Any}
+   _]
+  (try
+   (mem-run! config)
+   (catch ExceptionInfo e
+     (log/error e (.getMessage e))
+     (sling/throw+
+      {:type :cli-error
+       :message (.getMessage e)}
+      e))))
 
 (defn -main
   [& args]
-  (cli/run mem-run! args))
+  (cli/run mem-run-wrapper! args))

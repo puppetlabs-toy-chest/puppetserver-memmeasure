@@ -41,7 +41,6 @@
 (def ScenariosResult
   {:mem-used-after-last-scenario schema/Int
    :mem-used-before-first-scenario schema/Int
-   :num-containers schema/Int
    :scenarios [ScenarioResultWithName]})
 
 (def ScenarioRuntimeData

@@ -22,7 +22,8 @@
                  [puppetlabs/kitchensink "1.3.0"]
                  [cheshire "5.6.1"]
                  [clj-time "0.11.0"]
-                 [me.raynes/fs "1.4.6"]]
+                 [me.raynes/fs "1.4.6"]
+                 [slingshot "0.12.2"]]
   :main ^:skip-aot puppetserver-memmeasure.core
   :pedantic? :abort
   :repositories [["releases"

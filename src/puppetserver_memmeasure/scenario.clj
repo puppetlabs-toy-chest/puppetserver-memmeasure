@@ -3,9 +3,6 @@
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
             [clojure.tools.logging :as log]
-            [cheshire.core :as cheshire]
-            [clojure.java.io :as io]
-            [me.raynes.fs :as fs]
             [schema.core :as schema])
   (:import (java.io File)
            (clojure.lang IFn)))
@@ -110,7 +107,21 @@
 
 (schema/defn ^:always-validate run-scenario
   :- memmeasure-schemas/ScenariosRuntimeData
-  "Execute the supplied scenario-fn and aggregate memory measurement results."
+  "Execute the supplied scenario-fn and aggregate memory measurement results.
+  Callback to the :fn from the supplied scenario to obtain intermediate results.
+  Three arguments are supplied for each callback:
+
+  * jruby-puppet-config - The jruby-puppet configuration provided as a parameter
+                          to this function.
+
+  * mem-output-run-dir - The directory into which run output files should be
+                         written, also provided as a parameter to this function.
+
+  * context - The value of the :context key from the acc-results parameter
+              provided as a parameter to this function.
+
+  Each callback should return a map corresponding to the ScenarioRuntimeData
+  schema."
   [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    acc-results :- memmeasure-schemas/ScenariosRuntimeData
@@ -121,6 +132,8 @@
         scenario-output (scenario-fn jruby-puppet-config
                                      mem-output-run-dir
                                      (:context acc-results))
+        _ (schema/validate memmeasure-schemas/ScenarioRuntimeData
+                           scenario-output)
         mem-used-after-last-step-in-scenario (mem-after-last-step
                                               scenario-output)]
     (-> acc-results
@@ -138,29 +151,21 @@
   measurement results."
   [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
-   num-containers :- schema/Int
    scenarios :- [memmeasure-schemas/Scenario]]
   (let [mem-used-before-first-scenario
-        (util/take-yourkit-snapshot! mem-output-run-dir "baseline")
-        scenario-output
+        (util/take-yourkit-snapshot! mem-output-run-dir "baseline")]
+    (-> (partial run-scenario
+                 jruby-puppet-config
+                 mem-output-run-dir)
         (reduce
-         (partial run-scenario
-                  jruby-puppet-config
-                  mem-output-run-dir)
          {:context
           {:jrubies []}
           :results
           {:mem-used-before-first-scenario mem-used-before-first-scenario
            :mem-used-after-last-scenario mem-used-before-first-scenario
-           :num-containers num-containers
            :scenarios []}}
          scenarios)
-        scenario-results (:results scenario-output)
-        result-file (fs/file mem-output-run-dir "results.json")]
-    (cheshire/generate-stream scenario-results
-                              (io/writer result-file))
-    (log/infof "Results written to: %s" (.getCanonicalPath result-file))
-    scenario-results))
+        :results)))
 
 (schema/defn ^:always-validate run-scenario-body-over-steps
   :- memmeasure-schemas/ScenarioRuntimeData
