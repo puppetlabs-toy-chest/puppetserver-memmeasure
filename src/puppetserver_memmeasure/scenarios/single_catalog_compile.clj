@@ -3,9 +3,15 @@
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
             [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
-            [schema.core :as schema])
+            [schema.core :as schema]
+            [puppetlabs.services.request-handler.request-handler-core :as request-handler-core]
+            [me.raynes.fs :as fs]
+            [cheshire.core :as cheshire]
+            [clojure.java.io :as io]
+            [clojure.tools.logging :as log])
   (:import (java.io File)
-           (java.util HashMap)))
+           (java.util HashMap)
+           (com.puppetlabs.puppetserver JRubyPuppet)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -30,6 +36,36 @@
    "request-method" "POST"
    "uri" "/puppet/v3/catalog/x1pqeru6g8miy73.delivery.puppetlabs.net"})
 
+(schema/defn ^:always-validate run-single-catalog-compile-step
+  :- memmeasure-schemas/StepRuntimeData
+  [jruby-puppet :- JRubyPuppet
+   mem-output-run-dir :- File
+   step-base-name :- schema/Str
+   scenario-context :- memmeasure-schemas/ScenarioContext
+   iter :- schema/Int
+   _]
+  (let [catalog-response
+        (request-handler-core/response->map
+         (.handleRequest jruby-puppet (HashMap. request)))
+        catalog-result-file (fs/file mem-output-run-dir
+                                     (str
+                                      step-base-name
+                                      "-"
+                                      iter
+                                      "-catalog.json"))]
+    (cheshire/generate-stream catalog-response
+                              (io/writer catalog-result-file))
+    (log/infof "Catalog written to: %s" (.getCanonicalPath catalog-result-file))
+    (if (not= (:status catalog-response) 200)
+      (let [error-message (str "Error getting catalog "
+                               iter
+                               ": status: "
+                               (:status catalog-response)
+                               ", body: "
+                               (:body catalog-response))]
+        (throw (Exception. error-message)))))
+  {:context scenario-context})
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -43,14 +79,16 @@
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (util/with-jruby-puppet
-   jruby-puppet
-   jruby-puppet-config
-   (scenario/run-scenario-body-over-steps
-    (fn [scenario-context _ _]
-      (.handleRequest jruby-puppet (HashMap. request))
-      {:context scenario-context})
-    "single-catalog-compile"
-    mem-output-run-dir
-    scenario-context
-    (range num-catalogs))))
+  (let [step-base-name "single-catalog-compile"]
+    (util/with-jruby-puppet
+     jruby-puppet
+     jruby-puppet-config
+     (scenario/run-scenario-body-over-steps
+      (partial run-single-catalog-compile-step
+               jruby-puppet
+               mem-output-run-dir
+               step-base-name)
+      step-base-name
+      mem-output-run-dir
+      scenario-context
+      (range num-catalogs)))))
