@@ -60,6 +60,51 @@
           (Math/sqrt))
       0)))
 
+(schema/defn ^:always-validate run-scenario-body-over-steps*
+  [body-fn :- IFn
+   step-base-name :- schema/Str
+   mem-output-run-dir :- File
+   scenario-context :- memmeasure-schemas/ScenarioContext
+   steps-data :- (schema/pred coll?)
+   mem-at-scenario-start :- schema/Int]
+  (loop [iter 0
+         acc {:context scenario-context
+              :results {:mem-at-scenario-start mem-at-scenario-start
+                        :mem-inc-for-first-step 0
+                        :mean-mem-inc-per-additional-step 0
+                        :std-dev-mem-inc-per-additional-step 0
+                        :steps []}}
+         remaining-steps-data steps-data]
+    (if-let [step-data (first remaining-steps-data)]
+      (do
+        (let [body-results (body-fn (:context acc)
+                                    iter
+                                    step-data)
+              step-full-name (str step-base-name "-" iter)
+              mem-size (util/take-yourkit-snapshot! mem-output-run-dir
+                                                    step-full-name)
+              mem-after-previous-step (if-let [last-mem
+                                               (mem-after-last-step acc)]
+                                        last-mem
+                                        mem-at-scenario-start)
+              mem-inc-over-previous-step (- mem-size
+                                            mem-after-previous-step)]
+          (recur (inc iter)
+                 (-> acc
+                     (assoc :context (:context body-results))
+                     (update-in [:results :steps]
+                                conj
+                                (merge
+                                 (:results body-results)
+                                 {:name
+                                  step-full-name
+                                  :mem-used-after-step
+                                  mem-size
+                                  :mem-inc-over-previous-step
+                                  mem-inc-over-previous-step})))
+                 (rest remaining-steps-data))))
+      acc)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -149,44 +194,13 @@
                                                            (str
                                                             step-base-name
                                                             "-baseline"))
-        scenario-output
-        (loop [iter 0
-               acc {:context scenario-context
-                    :results {:mem-at-scenario-start mem-at-scenario-start
-                              :mem-inc-for-first-step 0
-                              :mean-mem-inc-per-additional-step 0
-                              :std-dev-mem-inc-per-additional-step 0
-                              :steps []}}
-               remaining-steps-data steps-data]
-          (if-let [step-data (first remaining-steps-data)]
-            (do
-              (let [body-results (body-fn (:context acc)
-                                          iter
-                                          step-data)
-                    step-full-name (str step-base-name "-" iter)
-                    mem-size (util/take-yourkit-snapshot! mem-output-run-dir
-                                                          step-full-name)
-                    mem-after-previous-step (if-let [last-mem
-                                                     (mem-after-last-step acc)]
-                                              last-mem
-                                              mem-at-scenario-start)
-                    mem-inc-over-previous-step (- mem-size
-                                                  mem-after-previous-step)]
-                (recur (inc iter)
-                       (-> acc
-                           (assoc :context (:context body-results))
-                           (update-in [:results :steps]
-                                      conj
-                                      (merge
-                                       (:results body-results)
-                                       {:name
-                                        step-full-name
-                                        :mem-used-after-step
-                                        mem-size
-                                        :mem-inc-over-previous-step
-                                        mem-inc-over-previous-step})))
-                       (rest remaining-steps-data))))
-            acc))
+        scenario-output (run-scenario-body-over-steps*
+                         body-fn
+                         step-base-name
+                         mem-output-run-dir
+                         scenario-context
+                         steps-data
+                         mem-at-scenario-start)
         mem-following-first-step (mem-after-first-step scenario-output)
         mem-inc-for-first-step (- mem-following-first-step
                                   mem-at-scenario-start)
