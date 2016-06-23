@@ -68,8 +68,10 @@
          acc {:context scenario-context
               :results {:mem-at-scenario-start mem-at-scenario-start
                         :mem-inc-for-first-step 0
-                        :mean-mem-inc-per-additional-step 0
-                        :std-dev-mem-inc-per-additional-step 0
+                        :mean-mem-inc-after-first-step 0
+                        :mean-mem-inc-after-second-step 0
+                        :std-dev-mem-inc-after-first-step 0
+                        :std-dev-mem-inc-after-second-step 0
                         :steps []}}
          remaining-steps-data steps-data]
     (if-let [step-data (first remaining-steps-data)]
@@ -209,16 +211,20 @@
         mem-following-first-step (mem-after-first-step scenario-output)
         mem-inc-for-first-step (- mem-following-first-step
                                   mem-at-scenario-start)
-        mem-incs-over-previous-step (-> scenario-output
-                                        (get-in [:results :steps])
-                                        rest
-                                        ((partial
-                                          map
-                                          :mem-inc-over-previous-step)))]
+        mem-incs-after-first-step (-> scenario-output
+                                      (get-in [:results :steps])
+                                      rest
+                                      ((partial map
+                                                :mem-inc-over-previous-step)))
+        mem-incs-after-second-step (rest mem-incs-after-first-step)]
     (-> scenario-output
         (assoc-in [:results :mem-inc-for-first-step]
                   mem-inc-for-first-step)
-        (assoc-in [:results :mean-mem-inc-per-additional-step]
-                  (mean mem-incs-over-previous-step))
-        (assoc-in [:results :std-dev-mem-inc-per-additional-step]
-                  (standard-deviation mem-incs-over-previous-step)))))
+        (assoc-in [:results :mean-mem-inc-after-first-step]
+                  (mean mem-incs-after-first-step))
+        (assoc-in [:results :mean-mem-inc-after-second-step]
+                  (mean mem-incs-after-second-step))
+        (assoc-in [:results :std-dev-mem-inc-after-first-step]
+                  (standard-deviation mem-incs-after-first-step))
+        (assoc-in [:results :std-dev-mem-inc-after-second-step]
+                  (standard-deviation mem-incs-after-second-step)))))

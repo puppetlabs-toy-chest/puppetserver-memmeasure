@@ -210,18 +210,26 @@ following keys appear in the "results" map for each scenario.
 * `mem-inc-for-first-step` - Increase in memory allocated after the first step
   in the scenario was run vs. before the first step was run.
   
-* `mean-mem-inc-per-additional-step` - Mean increase in memory before/after each
+* `mean-mem-inc-after-first-step` - Mean increase in memory before/after each
   step run after the first one (i.e., second to last).  The memory measurement
   for the first step is ignored for this value - and the corresponding
   `std-dev-mem-inc-per-additional-step` value - under the assumption that memory
   usage may expectedly increase significantly the first time a repeated action
   is performed vs. subsequent times that the action is performed.
   
-* `std-dev-mem-inc-per-additional-step` - Standard deviation in memory allocated
+* `mean-mem-inc-after-second-step` - Basically the same as
+  `mean-mem-inc-after-first-step` except that the memory measurements used are
+  the ones from third to last instead of second to last.
+  
+* `std-dev-mem-inc-after-first-step` - Standard deviation in memory allocated
   before/after each step beyond the first one was run.  The 'mean' used as the
   base for computing the standard deviation is the same as the
-  "mean-mem-inc-per-additional-step" value.
+  `mean-mem-inc-after-first-step` value.
 
+* `std-dev-mem-inc-after-second-step` - Basically the same as
+  `std-dev-mem-inc-after-first-step` except that the memory measurements used
+  are the ones from third to last instead of second to last.
+  
 Each of the "steps" performed in a memory scenario, listed in the json file in
 the exact order in which they are executed, includes the following:
  

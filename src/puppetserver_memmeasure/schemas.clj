@@ -27,10 +27,12 @@
    schema/Keyword schema/Any})
 
 (def ScenarioResult
-  {:mean-mem-inc-per-additional-step schema/Num
+  {:mean-mem-inc-after-first-step schema/Num
+   :mean-mem-inc-after-second-step schema/Num
    :mem-at-scenario-start schema/Int
    :mem-inc-for-first-step schema/Int
-   :std-dev-mem-inc-per-additional-step schema/Num
+   :std-dev-mem-inc-after-first-step schema/Num
+   :std-dev-mem-inc-after-second-step schema/Num
    :steps [StepResult]
    schema/Keyword schema/Any})
 
