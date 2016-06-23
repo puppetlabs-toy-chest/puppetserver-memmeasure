@@ -32,7 +32,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate run-single-catalog-compile-scenario
+(schema/defn ^:always-validate run-single-catalog-compile-env-timeout-zero-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
   ;;TODO update
   "Create a number of 'empty' JRuby ScriptingContainers.  The number created
@@ -42,10 +42,38 @@
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (let [step-base-name "single-catalog-compile"]
+  (let [step-base-name "single-catalog-compile-env-timeout-zero"]
+    (util/set-env-timeout! (:master-conf-dir jruby-puppet-config) 0)
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
+     (println (.getSetting jruby-puppet "environment_timeout"))
+     (scenario/run-scenario-body-over-steps
+      (partial run-single-catalog-compile-step
+               jruby-puppet
+               mem-output-run-dir
+               step-base-name)
+      step-base-name
+      mem-output-run-dir
+      scenario-context
+      (range num-catalogs)))))
+
+(schema/defn ^:always-validate run-single-catalog-compile-env-timeout-unlimited-scenario
+  :- memmeasure-schemas/ScenarioRuntimeData
+  ;;TODO update
+  "Create a number of 'empty' JRuby ScriptingContainers.  The number created
+   corresponds to the 'num-containers' parameter.  Memory measurements are
+   taken after each container is created."
+  [num-catalogs :- schema/Int
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   mem-output-run-dir :- File
+   scenario-context :- memmeasure-schemas/ScenarioContext]
+  (let [step-base-name "single-catalog-compile-env-timeout-unlimited"]
+    (util/set-env-timeout! (:master-conf-dir jruby-puppet-config) "unlimited")
+    (util/with-jruby-puppet
+     jruby-puppet
+     jruby-puppet-config
+     (println (.getSetting jruby-puppet "environment_timeout"))
      (scenario/run-scenario-body-over-steps
       (partial run-single-catalog-compile-step
                jruby-puppet
