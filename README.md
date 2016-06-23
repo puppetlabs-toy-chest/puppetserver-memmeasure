@@ -104,7 +104,7 @@ its upstream dependencies related to Puppet Server, the tool could be run from
 a Java command line like the following:
  
     $ java -cp /Applications/YourKit-Java-Profiler-2016.02.app/Contents/Resources/lib/yjp.jar:./target/uberjar/puppetserver-memmeasure-0.1.0-SNAPSHOT-standalone.jar \
-        -agentpath:/Applications/YourKit-Java-Profiler-2016.02.app/Contents/Resources/bin/mac/libyjpagent.jnilib \
+        -agentpath:/Applications/YourKit-Java-Profiler-2016.02.app/Contents/Resources/bin/mac/libyjpagent.jnilib=disableall \
         clojure.main -m puppetserver-memmeasure.core --config ~/puppetserver.conf
 
 Note that the paths to the "yjp.jar" and "libyjpagent" files from YourKit would

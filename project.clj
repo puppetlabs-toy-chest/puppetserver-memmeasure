@@ -4,7 +4,9 @@
 (def yourkit-agent-lib (str yourkit-resources-dir
                             "bin/mac/libyjpagent.jnilib"))
 
-(def yourkit-agentpath-jvm-opt (str "-agentpath:" yourkit-agent-lib))
+(def yourkit-agentpath-jvm-opt (str "-agentpath:"
+                                 yourkit-agent-lib
+                                 "=disableall"))
 
 (defproject puppetserver-memmeasure "0.1.0-SNAPSHOT"
   :description "Runs scenarios for measuring Puppet Server memory usage"
