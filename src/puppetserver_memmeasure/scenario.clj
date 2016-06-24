@@ -67,7 +67,9 @@
   (loop [iter 0
          acc {:context scenario-context
               :results {:mem-at-scenario-start mem-at-scenario-start
+                        :mem-at-scenario-end mem-at-scenario-start
                         :mem-inc-for-first-step 0
+                        :mem-inc-for-scenario 0
                         :mean-mem-inc-after-first-step 0
                         :mean-mem-inc-after-second-step 0
                         :std-dev-mem-inc-after-first-step 0
@@ -155,19 +157,30 @@
    mem-output-run-dir :- File
    scenarios :- [memmeasure-schemas/Scenario]]
   (let [mem-used-before-first-scenario
-        (util/take-yourkit-snapshot! mem-output-run-dir "baseline")]
-    (-> (partial run-scenario
-                 jruby-puppet-config
-                 mem-output-run-dir)
-        (reduce
-         {:context
-          {:jrubies []}
-          :results
-          {:mem-used-before-first-scenario mem-used-before-first-scenario
-           :mem-used-after-last-scenario mem-used-before-first-scenario
-           :scenarios []}}
-         scenarios)
-        :results)))
+        (util/take-yourkit-snapshot! mem-output-run-dir "baseline")
+
+        scenario-results
+        (-> (partial run-scenario
+                     jruby-puppet-config
+                     mem-output-run-dir)
+            (reduce
+             {:context
+              {:jrubies []}
+              :results
+              {:mem-inc-for-all-scenarios 0
+               :mem-used-before-first-scenario mem-used-before-first-scenario
+               :mem-used-after-last-scenario mem-used-before-first-scenario
+               :scenarios []}}
+             scenarios)
+            :results)
+
+        mem-used-after-last-scenario (util/take-yourkit-snapshot!
+                                      mem-output-run-dir
+                                      "final")]
+    (-> scenario-results
+        (assoc :mem-used-after-last-scenario mem-used-after-last-scenario)
+        (assoc :mem-inc-for-all-scenarios (- mem-used-after-last-scenario
+                                             mem-used-before-first-scenario)))))
 
 (schema/defn ^:always-validate run-scenario-body-over-steps
   :- memmeasure-schemas/ScenarioRuntimeData
@@ -208,20 +221,24 @@
                          scenario-context
                          steps-data
                          mem-at-scenario-start)
-        mem-following-first-step (mem-after-first-step scenario-output)
-        mem-inc-for-first-step (if mem-following-first-step
-                                 (- mem-following-first-step
-                                    mem-at-scenario-start)
-                                 0)
+        mem-following-first-step (or (mem-after-first-step scenario-output)
+                                     mem-at-scenario-start)
+        mem-following-last-step (or (mem-after-last-step scenario-output)
+                                    mem-following-first-step)
+        mem-inc-for-first-step (- mem-following-first-step
+                                  mem-at-scenario-start)
         mem-incs-after-first-step (-> scenario-output
                                       (get-in [:results :steps])
                                       rest
                                       ((partial map
                                                 :mem-inc-over-previous-step)))
+        mem-inc-for-scenario (- mem-following-last-step
+                                mem-at-scenario-start)
         mem-incs-after-second-step (rest mem-incs-after-first-step)]
     (-> scenario-output
-        (assoc-in [:results :mem-inc-for-first-step]
-                  mem-inc-for-first-step)
+        (assoc-in [:results :mem-at-scenario-end] mem-following-last-step)
+        (assoc-in [:results :mem-inc-for-scenario] mem-inc-for-scenario)
+        (assoc-in [:results :mem-inc-for-first-step] mem-inc-for-first-step)
         (assoc-in [:results :mean-mem-inc-after-first-step]
                   (mean mem-incs-after-first-step))
         (assoc-in [:results :mean-mem-inc-after-second-step]

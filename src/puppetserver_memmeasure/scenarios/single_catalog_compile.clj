@@ -4,7 +4,8 @@
             [puppetserver-memmeasure.util :as util]
             [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
             [schema.core :as schema]
-            [me.raynes.fs :as fs])
+            [me.raynes.fs :as fs]
+            [clojure.tools.logging :as log])
   (:import (java.io File)
            (com.puppetlabs.puppetserver JRubyPuppet)))
 
@@ -47,7 +48,9 @@
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
-     (println (.getSetting jruby-puppet "environment_timeout"))
+     (log/infof "Using environment timeout: %s"
+                (.getSetting jruby-puppet
+                             "environment_timeout"))
      (scenario/run-scenario-body-over-steps
       (partial run-single-catalog-compile-step
                jruby-puppet
@@ -73,7 +76,9 @@
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
-     (println (.getSetting jruby-puppet "environment_timeout"))
+     (log/infof "Using environment timeout: %s"
+                (.getSetting jruby-puppet
+                             "environment_timeout"))
      (scenario/run-scenario-body-over-steps
       (partial run-single-catalog-compile-step
                jruby-puppet

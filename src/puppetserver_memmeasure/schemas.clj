@@ -30,7 +30,9 @@
   {:mean-mem-inc-after-first-step schema/Num
    :mean-mem-inc-after-second-step schema/Num
    :mem-at-scenario-start schema/Int
+   :mem-at-scenario-end schema/Int
    :mem-inc-for-first-step schema/Int
+   :mem-inc-for-scenario schema/Int
    :std-dev-mem-inc-after-first-step schema/Num
    :std-dev-mem-inc-after-second-step schema/Num
    :steps [StepResult]
@@ -41,7 +43,8 @@
    :results ScenarioResult})
 
 (def ScenariosResult
-  {:mem-used-after-last-scenario schema/Int
+  {:mem-inc-for-all-scenarios schema/Int
+   :mem-used-after-last-scenario schema/Int
    :mem-used-before-first-scenario schema/Int
    :scenarios [ScenarioResultWithName]})
 

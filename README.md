@@ -136,17 +136,23 @@ JSON tool (`python -m json-tool <json file>`) - from one example run:
 
 ~~~json
 {
-    "mem-used-after-last-scenario": 178833600,
-    "mem-used-before-first-scenario": 14352968,
+    "mem-inc-for-all-scenarios": 88845648,
+    "mem-used-after-last-scenario": 119728136,
+    "mem-used-before-first-scenario": 30882488,
     "num-containers": 4
     "num-catalogs": 4
     "scenarios": [
         {
             "name": "create empty scripting containers",
             "results": {
-                "mean-mem-inc-per-additional-step": 5079389.333333333,
-                "mem-inc-for-first-step": 16321000,
-                "std-dev-mem-inc-per-additional-step": 75399.83952827015,
+                "mean-mem-inc-after-first-step": 5019624,
+                "mean-mem-inc-after-second-step": 5006880,
+                "mem-at-scenario-end": 59217712,
+                "mem-at-scenario-start": 32472376,
+                "mem-inc-for-first-step": 11686464,
+                "mem-inc-for-scenario": 26745336,
+                "std-dev-mem-inc-after-first-step": 18102.578232579654,
+                "std-dev-mem-inc-after-second-step": 2080.0,
                 "steps": [
                     {
                         "mem-inc-over-previous-step": 16321000,
@@ -165,9 +171,14 @@ JSON tool (`python -m json-tool <json file>`) - from one example run:
         {
             "name": "initialize puppet into scripting containers",
             "results": {
-                "mean-mem-inc-per-additional-step": 31446400,
-                "mem-inc-for-first-step": 38582264,
-                "std-dev-mem-inc-per-additional-step": 53254.31973715059,
+                "mean-mem-inc-after-first-step": 31394736,
+                "mean-mem-inc-after-second-step": 31399468,
+                "mem-at-scenario-end": 191836712,
+                "mem-at-scenario-start": 59246192,
+                "mem-inc-for-first-step": 38406312,
+                "mem-inc-for-scenario": 132590520,
+                "std-dev-mem-inc-after-first-step": 6934.909564418751,
+                "std-dev-mem-inc-after-second-step": 2228.0,
                 "steps": [
                     {
                         "mem-inc-over-previous-step": 38582264,
@@ -202,7 +213,7 @@ on object reachability scope and YourKit's related interpretation.
 
 The `mem-used-before-first-scenario` and `mem-used-after-last-scenario`
 numbers represent memory allocated before vs. after all scenarios are run,
-respectively.
+respectively.  `mem-inc-for-all-scenarios` is the difference between the two.
 
 For each memory scenario run, a map appears under the "scenarios" key.  The
 scenarios appear in the exact order in which the tool executes them.  The
