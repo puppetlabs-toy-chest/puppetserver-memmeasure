@@ -157,5 +157,5 @@
   [master-conf-dir :- schema/Str
    timeout :- (schema/enum 0 "0" "unlimited")]
   (let [puppet-conf (fs/file master-conf-dir "puppet.conf")]
-    (spit puppet-conf (str "[main]\nenvironment_timeout=" timeout))))
+    (spit puppet-conf (str "[main]\nenvironment_timeout=" timeout "\n"))))
 

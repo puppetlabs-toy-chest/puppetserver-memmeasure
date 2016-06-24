@@ -35,6 +35,7 @@
   [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
+  (util/set-env-timeout! (:master-conf-dir jruby-puppet-config) "unlimited")
   (scenario/run-scenario-body-over-steps
    (partial run-initialize-puppet-in-jruby-containers-step
             jruby-puppet-config)
