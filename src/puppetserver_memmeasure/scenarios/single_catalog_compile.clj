@@ -17,6 +17,7 @@
   [jruby-puppet :- JRubyPuppet
    mem-output-run-dir :- File
    step-base-name :- schema/Str
+   node-name :- schema/Str
    scenario-context :- memmeasure-schemas/ScenarioContext
    iter :- schema/Int
    _]
@@ -27,22 +28,24 @@
                               "-"
                               iter
                               "-catalog.json"))
-                    "role::by_size::small")
+                    node-name
+                    (format "role::by_size::%s" node-name))
   {:context scenario-context})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate run-single-catalog-compile-scenario
+(schema/defn ^:always-validate run-catalog-compile-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
   "Compile a catalog 'num-catalogs' number of times"
   [num-catalogs :- schema/Int
+   node-name :- schema/Str
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    environment-timeout :- memmeasure-schemas/EnvironmentTimeout
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (let [step-base-name (str "single-catalog-compile-env-timeout-"
-                            environment-timeout)]
+  (let [step-base-name (format "single-catalog-compile-%s-env-timeout-%s"
+                            node-name environment-timeout)]
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
@@ -53,7 +56,8 @@
       (partial run-single-catalog-compile-step
                jruby-puppet
                mem-output-run-dir
-               step-base-name)
+               step-base-name
+               node-name)
       step-base-name
       mem-output-run-dir
       scenario-context
