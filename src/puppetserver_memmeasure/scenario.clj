@@ -132,9 +132,17 @@
    scenario :- memmeasure-schemas/Scenario]
   (let [scenario-fn (:fn scenario)
         scenario-name (:name scenario)
+        environment-timeout (:environment-timeout scenario)
         _ (log/infof "Running scenario: %s" scenario-name)
+        _ (when environment-timeout
+            (log/infof "Setting environment timeout: %s"
+                       environment-timeout)
+            (util/set-env-timeout!
+             (:master-conf-dir jruby-puppet-config)
+             environment-timeout))
         scenario-output (scenario-fn jruby-puppet-config
                                      mem-output-run-dir
+                                     environment-timeout
                                      (:context acc-results))
         _ (schema/validate memmeasure-schemas/ScenarioRuntimeData
                            scenario-output)

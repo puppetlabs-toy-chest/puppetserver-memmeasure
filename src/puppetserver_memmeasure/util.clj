@@ -2,12 +2,14 @@
   (:require [clojure.tools.logging :as log]
             [me.raynes.fs :as fs]
             [schema.core :as schema]
+            [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetlabs.services.jruby.jruby-puppet-internal
              :as jruby-puppet-internal]
             [puppetlabs.services.jruby.puppet-environments :as puppet-env]
             [puppetlabs.services.jruby.jruby-puppet-internal :as jruby-internal]
             [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
-            [puppetlabs.services.request-handler.request-handler-core :as request-handler-core]
+            [puppetlabs.services.request-handler.request-handler-core
+             :as request-handler-core]
             [cheshire.core :as cheshire]
             [clojure.java.io :as io])
   (:import (com.yourkit.api Controller MemorySnapshot)
@@ -155,7 +157,7 @@
 
 (schema/defn ^:always-validate set-env-timeout!
   [master-conf-dir :- schema/Str
-   timeout :- (schema/enum 0 "0" "unlimited")]
+   timeout :- memmeasure-schemas/EnvironmentTimeout]
   (let [puppet-conf (fs/file master-conf-dir "puppet.conf")]
     (spit puppet-conf (str "[main]\nenvironment_timeout=" timeout "\n"))))
 

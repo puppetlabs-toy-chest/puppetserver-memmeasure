@@ -4,9 +4,13 @@
            (com.puppetlabs.puppetserver.jruby ScriptingContainer)
            (com.puppetlabs.puppetserver JRubyPuppet)))
 
+(def EnvironmentTimeout
+  (schema/enum 0 "0" "unlimited"))
+
 (def Scenario
   {:name schema/Str
-   :fn IFn})
+   :fn IFn
+   (schema/optional-key :environment-timeout) EnvironmentTimeout})
 
 (def JRubyPuppetScenarioEntry
   {:container ScriptingContainer

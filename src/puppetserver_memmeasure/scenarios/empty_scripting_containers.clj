@@ -34,6 +34,7 @@
   [num-containers :- schema/Int
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
+   _
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (scenario/run-scenario-body-over-steps
    (partial run-empty-scripting-containers-step

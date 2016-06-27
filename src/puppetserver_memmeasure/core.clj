@@ -67,14 +67,16 @@
            :fn (partial empty-scripting-container-scenario/run-empty-scripting-containers-scenario
                         num-containers)}
           {:name "initialize puppet into scripting containers"
-           :fn init-puppet-scenario/run-initialize-puppet-in-jruby-containers-scenario}
+           :fn init-puppet-scenario/run-initialize-puppet-in-jruby-containers-scenario
+           :environment-timeout "unlimited"}
           {:name "compile a single catalog with environment timeout unlimited"
-           :fn (partial single-catalog-compile-scenario/run-single-catalog-compile-env-timeout-unlimited-scenario
-                        num-catalogs)}
+           :fn (partial single-catalog-compile-scenario/run-single-catalog-compile-scenario
+                        num-catalogs)
+           :environment-timeout "unlimited"}
           {:name "compile a single catalog with environment timeout 0"
-           :fn (partial single-catalog-compile-scenario/run-single-catalog-compile-env-timeout-zero-scenario
-                        num-catalogs)}
-          ])
+           :fn (partial single-catalog-compile-scenario/run-single-catalog-compile-scenario
+                        num-catalogs)
+           :environment-timeout 0}])
         (assoc :num-containers num-containers)
         (assoc :num-catalogs num-catalogs)
         (cheshire/generate-stream (io/writer result-file)))
