@@ -38,11 +38,11 @@
 (schema/defn ^:always-validate run-catalog-compile-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
   "Compile a catalog 'num-catalogs' number of times"
-  [num-catalogs :- schema/Int
-   node-name :- schema/Str
+  [{:keys [environment-timeout
+           node-name
+           num-catalogs] :- memmeasure-schemas/ScenarioConfig}
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
-   environment-timeout :- memmeasure-schemas/EnvironmentTimeout
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (let [step-base-name (format "single-catalog-compile-%s-env-timeout-%s"
                             node-name environment-timeout)]
@@ -62,3 +62,10 @@
       mem-output-run-dir
       scenario-context
       (range num-catalogs)))))
+
+(schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
+  [scenario-config :- memmeasure-schemas/ScenarioConfig]
+  [{:name (format "compile a single %s catalog with environment timeout %s"
+                  (:node-name scenario-config)
+                  (:environment-timeout scenario-config))
+    :fn run-catalog-compile-scenario}])

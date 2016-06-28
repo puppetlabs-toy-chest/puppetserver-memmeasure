@@ -2,98 +2,90 @@
   (:gen-class)
   (:require [clojure.tools.logging :as log]
             [puppetserver-memmeasure.scenario :as scenario]
-            [puppetserver-memmeasure.scenarios.empty-scripting-containers
-             :as empty-scripting-container-scenario]
-            [puppetserver-memmeasure.scenarios.initialize-puppet-in-jruby-containers
-             :as init-puppet-scenario]
-            [puppetserver-memmeasure.scenarios.single-catalog-compile
-             :as single-catalog-compile-scenario]
+            [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetlabs.puppetserver.cli.subcommand :as cli]
             [puppetlabs.services.jruby.jruby-puppet-core :as jruby-puppet-core]
             [puppetlabs.kitchensink.core :as ks]
             [puppetlabs.trapperkeeper.config :as tk-config]
-            [clj-time.core :as clj-time-core]
-            [clj-time.format :as clj-time-format]
             [me.raynes.fs :as fs]
             [schema.core :as schema]
             [cheshire.core :as cheshire]
             [slingshot.slingshot :refer [try+]]
             [clojure.java.io :as io]
-            [slingshot.slingshot :as sling])
-  (:import (java.io File)
-           (clojure.lang ExceptionInfo)))
+            [slingshot.slingshot :as sling]
+            [clojure.string :as str])
+  (:import (clojure.lang ExceptionInfo)))
 
 (def default-output-dir "./target/mem-measure")
+(def default-node-name "small")
 (def default-num-containers 4)
 (def default-num-catalogs 4)
+(def default-environment-timeout "unlimited")
 
-(schema/defn ^:always-validate create-output-run-dir! :- File
-  "Create a run-specific directory under the supplied base directory.
-  If the base directory were '/my/testdir', a subdirectory based on the current
-  date/time when this function is run is created, e.g.,
-  '/my/testdir/20160620T155254.905Z'"
-  [base-output-dir :- schema/Str]
-  (let [run-specific-subdir (clj-time-format/unparse
-                             (clj-time-format/formatters :basic-date-time)
-                             (clj-time-core/now))
-        normalized-output-dir (-> base-output-dir
-                                  (fs/file run-specific-subdir)
-                                  fs/normalized)]
-    (log/infof "Creating output dir for run: %s" (.getCanonicalPath
-                                                  normalized-output-dir))
-    (ks/mkdirs! normalized-output-dir)
-    normalized-output-dir))
+(def cli-specs
+  [["-c" "--num-catalogs NUM_CATALOGS" "Number of catalogs to use"
+    :id :num-catalogs
+    :default default-num-catalogs
+    :parse-fn #(Integer/parseInt %)]
+   ["-e" "--environment-timeout ENV_TIMEOUT"
+    "Environment timeout to use - 0 or 'unlimited'"
+    :default default-environment-timeout
+    :validate-fn #(schema/validate memmeasure-schemas/EnvironmentTimeout %)]
+   ["-j" "--num-containers NUM_CONTAINERS" "Number of JRuby containers to use"
+    :id :num-containers
+    :default default-num-containers
+    :parse-fn #(Integer/parseInt %)]
+   ["-n" "--node-name NODE_NAME" "Node name to use for catalog requests"
+    :id :node-name
+    :default default-node-name]
+   ["-o" "--output-dir OUTPUT_DIR" "Output directory"
+    :id :output-dir
+    :default default-output-dir]
+   ["-s" "--scenario-ns SCENARIO_NS"
+    "Namespace to run scenarios from"
+    :id :scenario-ns
+    :default "basic-scripting-containers"]])
 
 (schema/defn ^:always-validate mem-run!
   "Mainline function for the memcapture program.  Supplied with a
-  decomposed config map from Trapperkeeper"
-  [config :- {schema/Keyword schema/Any}]
+  decomposed config map from Trapperkeeper and list of additional
+  non-Trapperkeeper processed options supplied from the command-line, if any."
+  [config :- {schema/Keyword schema/Any}
+   options :- [schema/Str]]
   (tk-config/initialize-logging! config)
-  (let [jruby-puppet-config (jruby-puppet-core/initialize-config config)
-        mem-measure-config (:mem-measure config)
-        mem-output-run-dir (create-output-run-dir!
-                            (or (:output-dir mem-measure-config)
-                                default-output-dir))
-        num-containers (or (:num-containers mem-measure-config)
-                           default-num-containers)
-        num-catalogs (or (:num-catalogs mem-measure-config)
-                         default-num-catalogs)
-        result-file (fs/file mem-output-run-dir "results.json")]
-    (log/infof "Using %d containers for simulation" num-containers)
-    (-> jruby-puppet-config
-        (scenario/run-scenarios
-         mem-output-run-dir
-         [{:name "create empty scripting containers"
-           :fn (partial empty-scripting-container-scenario/run-empty-scripting-containers-scenario
-                        num-containers)}
-          {:name "initialize puppet into scripting containers"
-           :fn init-puppet-scenario/run-initialize-puppet-in-jruby-containers-scenario
-           :environment-timeout "unlimited"}
-
-          {:name "compile a single small catalog with environment timeout 0"
-           :fn (partial single-catalog-compile-scenario/run-catalog-compile-scenario
-                        num-catalogs
-                        "small")
-           :environment-timeout 0}
-          {:name "compile a single small catalog with environment timeout unlimited"
-           :fn (partial single-catalog-compile-scenario/run-catalog-compile-scenario
-                        num-catalogs
-                        "small")
-           :environment-timeout "unlimited"}
-          {:name "compile a single empty catalog with environment timeout 0"
-           :fn (partial single-catalog-compile-scenario/run-catalog-compile-scenario
-                        num-catalogs
-                        "empty")
-           :environment-timeout 0}
-          {:name "compile a single empty catalog with environment timeout unlimited"
-           :fn (partial single-catalog-compile-scenario/run-catalog-compile-scenario
-                        num-catalogs
-                        "empty")
-           :environment-timeout "unlimited"}])
-        (assoc :num-containers num-containers)
-        (assoc :num-catalogs num-catalogs)
-        (cheshire/generate-stream (io/writer result-file)))
-    (log/infof "Results written to: %s" (.getCanonicalPath result-file))))
+  (let [parsed-cli-options (first (ks/cli! options cli-specs))
+        jruby-puppet-config (jruby-puppet-core/initialize-config config)
+        scenario-ns (:scenario-ns parsed-cli-options)
+        mem-output-run-dir (fs/file (:output-dir parsed-cli-options))
+        result-file (fs/file mem-output-run-dir "results.json")
+        scenario-ns-file (str "src/puppetserver_memmeasure/scenarios/"
+                              (str/replace scenario-ns "-" "_")
+                              ".clj")
+        scenario-ns-symbol (symbol (str "puppetserver-memmeasure.scenarios."
+                                        (:scenario-ns parsed-cli-options)
+                                        "/scenario-data"))
+        scenario-config (select-keys parsed-cli-options
+                                     [:num-containers
+                                      :num-catalogs
+                                      :environment-timeout
+                                      :node-name])]
+    (log/infof "Loading scenario ns file: %s" scenario-ns-file)
+    (load-file scenario-ns-file)
+    (if-let [scenario-data (resolve scenario-ns-symbol)]
+      (do
+        (log/infof "Creating output dir for run: %s"
+                   (.getCanonicalPath mem-output-run-dir))
+        (ks/mkdirs! mem-output-run-dir)
+        (log/info "Config for simulation: " scenario-config)
+        (-> scenario-config
+            (scenario/run-scenarios
+             jruby-puppet-config
+             mem-output-run-dir
+             (scenario-data scenario-config))
+            (assoc :config scenario-config)
+            (cheshire/generate-stream (io/writer result-file)))
+        (log/infof "Results written to: %s" (.getCanonicalPath result-file)))
+      (log/errorf "Unable to locate scenario data for: %s" scenario-ns-symbol))))
 
 (schema/defn mem-run-wrapper!
   "Wrapper for the mainline function for the memcapture program.  Basically
@@ -101,15 +93,23 @@
   a slingshot exception that the cli subcommand wrapper from Puppet Server
   should output properly, when applicable."
   [config :- {schema/Keyword schema/Any}
-   _]
+   options :- [schema/Str]]
   (try
-   (mem-run! config)
+   (mem-run! config options)
    (catch ExceptionInfo e
-     (log/error e (.getMessage e))
-     (sling/throw+
-      {:type :cli-error
-       :message (.getMessage e)}
-      e))))
+     (let [exception-type (:type (.getData e))]
+       (if (and exception-type
+                (keyword? exception-type)
+                (or (= (ks/without-ns exception-type) :cli-error)
+                    (= (ks/without-ns exception-type) :cli-help)))
+         (sling/throw+ e)
+         (do
+           ;; Non-cli error, recast to cli slingshot error
+           (log/error e (.getMessage e))
+           (sling/throw+
+            {:type ::cli-error
+             :message (.getMessage e)}
+            e)))))))
 
 (defn -main
   [& args]

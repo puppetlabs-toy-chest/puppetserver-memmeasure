@@ -78,23 +78,51 @@ from source in the GitHub
 [puppetserver](https://github.com/puppetlabs/puppetserver) project and/or
 downloaded from the internal nexus.delivery.puppetlabs.net server.
 
+### Install the r10k gem
+
+Various scenarios written for the tool require an environment from an
+[r10k](https://github.com/puppetlabs/r10k) control repo to be installed.  The
+specific base branch that the tool uses is
+"20160622_SERVER_1390-catalog-memory-measurement" in the 
+[puppetlabs-puppetserver_perf_control](https://github.com/puppetlabs/puppetlabs-puppetserver_perf_control/tree/20160622_SERVER-1390-catalog-memory-measurement) repo.
+
+In order to be able to use `r10k` to deploy the control repo, the `r10k` ruby
+gem should first be installed:
+
+    $ gem install r10k
+
 ## Usage
 
-The tool can be run from the command line via [Leiningen](http://leiningen.org)
-with the following command line:
+To run all scenarios, execute the following from the command line:
+
+    $ ./dev/run.sh
+
+The script performs two steps:
+
+1. Uses the `r10k` gem to deploy an environment from the
+   `puppetlabsl-puppetserver_perf_control` repo.
+   
+2. Via [Leiningen](http://leiningen.org), runs various memory scenarios against
+   the Puppet code deployed from the control repo.
+
+---
+
+The tool can also be run via Leiningen directly the command line.  The following
+command would run the tool with default arguments, exercising only a default
+memory scenario, `basic-scripting-container`:
 
     $ lein go
 
 "go" is an alias which expands to: 
     
     $ lein trampoline run --config ./dev/puppetserver.conf 
-  
+ 
 The memory measurement tool uses
-[Trapperkeeper](https://github.com/puppetlabs/trapperkeeper) to load its
-configuration, `./dev/puppetserver.conf` for the "go" alias.  You may in some
-cases want to customize this default configuration file.  To do that, you could
-copy the file to another location and run the tool with the custom location
-of the config file.  For example:
+[Trapperkeeper](https://github.com/puppetlabs/trapperkeeper) to load
+configuration settings which pertain to Puppet Server, `./dev/puppetserver.conf`
+for the "go" alias.  You may in some cases want to customize this default
+configuration file.  To do that, you could copy the file to another location and
+run the tool with the custom location of the config file.  For example:
 
      $ cp ./dev/puppetserver.conf ~/.puppetserver.conf
      $ lein run --config ~/.puppetserver.conf
@@ -112,17 +140,16 @@ need to be adjusted to reflect the appropriate local installation directory.
 
 While the tool is running, various output files - including memory snapshots
 taken during individual scenario steps and a "results.json" file with the final
-test results - are written into an output directory.  The base name of the
+test results - are written into an output directory.  The name of the
 output directory can be controlled via configuration - see the
-[Options](#options) section for more details.  A run-specific subdirectory will
-be created under the base output directory.  Log messages indicate the
+[Options](#options) section for more details.  Log messages indicate the
 fully-qualified paths to each of the files that the tool writes.  Some examples
 include:
 
 ~~~
-2016-06-20 17:35:18,433 INFO  [main] [p.core] Creating output dir for run: .../target/mem-measure/20160621T003518.427Z
-2016-06-20 17:35:34,325 INFO  [main] [p.util] Snapshot renamed to: .../target/mem-measure/20160621T003518.427Z/create-container-0.snapshot
-2016-06-20 17:37:53,325 INFO  [main] [p.scenario] Results written to: .../target/mem-measure/20160621T003518.427Z/results.json
+2016-06-20 17:35:18,433 INFO  [main] [p.core] Creating output dir for run: .../target/mem-measure
+2016-06-20 17:35:34,325 INFO  [main] [p.util] Snapshot renamed to: .../target/mem-measure/create-container-0.snapshot
+2016-06-20 17:37:53,325 INFO  [main] [p.scenario] Results written to: .../target/mem-measure/results.json
 ~~~
 
 ## Output
@@ -136,6 +163,12 @@ JSON tool (`python -m json-tool <json file>`) - from one example run:
 
 ~~~json
 {
+    "config": {
+        "environment-timeout": "0",
+        "node-name": "small",
+        "num-catalogs": 10,
+        "num-containers": 4
+    },
     "mem-inc-for-all-scenarios": 88845648,
     "mem-used-after-last-scenario": 119728136,
     "mem-used-before-first-scenario": 30882488,
@@ -256,29 +289,65 @@ represent a decrease.
 
 ## Options
 
-The only command line option specific to this application is
+Command line options can be specified in two segments, delimited by "--":
+ 
+    $ lein run <first segment> -- <second segment>
+ 
+The only available option recognized for the first segment is
 "--config <config file/directory name>", which is used to select the
-configuration directory or file name that the application uses.  Most other
-configuration settings are derived from [Puppet Server](https://github.com/puppetlabs/puppetserver/blob/master/documentation/config_file_puppetserver.markdown).
-Relevant configuration sections/settings include:
+configuration directory or file name with settings pertaining to
+[Puppet Server](https://github.com/puppetlabs/puppetserver/blob/master/documentation/config_file_puppetserver.markdown)
+and its related [Trapperkeeper-based](https://github.com/puppetlabs/trapperkeeper)
+service dependencies:
+
+    $ lein run --config dev/puppetserver.conf
+
+Relevant Puppet Server / Trapperkeeper configuration sections/settings include:
 
 * global.logging-config
 * jruby-puppet
 * http-client
 
+Other options which are memory-measurement tool specific can be specified in
+the second segment of the command line.  For example, the output directory
+for the application can be specified via the `-o` option:
+
+    $ lein run --config dev/puppetserver.conf -- -o ./some-directory
+
 This section also includes a "mem-measure" section with options specific to the
 memory measurement tool.  Options in this section include:
 
-* `output-dir` - The base directory under which the output (memory snapshots,
-  etc.) of the tool will be written.  This setting is optional.  If it is not
-  specified, output will be written under a base directory in the repo clone
-  called "./target/mem-measure".
+* `-c | --numcatalogs NUM_CATALOGS` - For a relevant scenario, specifies the
+  number of catalog compilations that the scenario should perform per
+  environment within a jruby instance.  If not specified and the scenario
+  requests catalogs, `4` catalogs will be requested.
+
+* `-e | --environment-timeout ENV_TIMEOUT` - Prior to running the scenario,
+  configure a 'puppet.conf' file in the directory referenced by the
+  `jruby-puppet.master-conf-dir` setting from the Puppet Server / Trapperkeeper
+  configuration file.  If not specified, the `environment_timeout` will be
+  set to `unlimited`.
+
+* `-j | --num-containers NUM_CONTAINERS` - For a relevant scenario, specifies
+  the number of JRuby ScriptingContainers that the scenario should create.  If
+  not specified and the scenario creates containers, `4` containers will be
+  created.
   
-* `num-containers` - The number of JRuby ScriptingContainers that the tool will
-  create while running scenarios.  This setting is optional.  If it is not
-  specified, 4 containers will be created.
+* `-n | --node-name NODE_NAME` - For a relevant scenario, specifies the node
+  name that the scenario should use (e.g., when requesting a catalog for the
+  node).  If not specified and the scenario uses a node name, `small` will be
+  used as the default.
+
+* `-o | --output-dir OUTPUT_DIR` - The directory under which the output (memory
+  snapshots, etc.) of the tool will be written.  This setting is optional.  If
+  it is not specified, output will be written under a base directory in the
+  repo clone called "./target/mem-measure".
   
-* `num-catalogs` - The number of catalogs compiled for a combination of
-  parameters for any scenarios that involve compiling catalogs.  This setting
-  is optional.  If it is not specified, 4 catalogs will be compiled per
-  the appropriate scenarios.
+* `-s | --scenario-ns SCENARIO_NS` - Namespace of the scenario that should be
+  executed.  Relates to the subpath of the scenario implementation's Clojure
+  namespace.  To execute the scenario in the Clojure
+  `:puppetserver-memmeasure.scenarios.single-catalog-compile` namespace,
+  "single-catalog-compile" would need to be specified.  If not specified,
+  the "basic-scripting-container" scenario is run by default.
+  
+  

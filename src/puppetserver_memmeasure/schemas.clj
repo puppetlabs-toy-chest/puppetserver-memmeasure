@@ -9,8 +9,13 @@
 
 (def Scenario
   {:name schema/Str
-   :fn IFn
-   (schema/optional-key :environment-timeout) EnvironmentTimeout})
+   :fn IFn})
+
+(def ScenarioConfig
+  {:num-containers schema/Int
+   :num-catalogs schema/Int
+   :environment-timeout EnvironmentTimeout
+   :node-name schema/Str})
 
 (def JRubyPuppetScenarioEntry
   {:container ScriptingContainer
@@ -50,7 +55,8 @@
   {:mem-inc-for-all-scenarios schema/Int
    :mem-used-after-last-scenario schema/Int
    :mem-used-before-first-scenario schema/Int
-   :scenarios [ScenarioResultWithName]})
+   :scenarios [ScenarioResultWithName]
+   :config ScenarioConfig})
 
 (def ScenarioRuntimeData
   {:context ScenarioContext

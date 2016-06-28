@@ -115,6 +115,9 @@
   Callback to the :fn from the supplied scenario to obtain intermediate results.
   Three arguments are supplied for each callback:
 
+  * scenario-config - The scenario-config provided as a parameter to this
+                      function.
+
   * jruby-puppet-config - The jruby-puppet configuration provided as a parameter
                           to this function.
 
@@ -126,23 +129,17 @@
 
   Each callback should return a map corresponding to the ScenarioRuntimeData
   schema."
-  [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+  [scenario-config :- memmeasure-schemas/ScenarioConfig
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    acc-results :- memmeasure-schemas/ScenariosRuntimeData
    scenario :- memmeasure-schemas/Scenario]
   (let [scenario-fn (:fn scenario)
         scenario-name (:name scenario)
-        environment-timeout (:environment-timeout scenario)
         _ (log/infof "Running scenario: %s" scenario-name)
-        _ (when environment-timeout
-            (log/infof "Setting environment timeout: %s"
-                       environment-timeout)
-            (util/set-env-timeout!
-             (:master-conf-dir jruby-puppet-config)
-             environment-timeout))
-        scenario-output (scenario-fn jruby-puppet-config
+        scenario-output (scenario-fn scenario-config
+                                     jruby-puppet-config
                                      mem-output-run-dir
-                                     environment-timeout
                                      (:context acc-results))
         _ (schema/validate memmeasure-schemas/ScenarioRuntimeData
                            scenario-output)
@@ -161,14 +158,20 @@
   :- memmeasure-schemas/ScenariosResult
   "Execute a vector of supplied scenarios in order and aggregate memory
   measurement results."
-  [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+  [scenario-config :- memmeasure-schemas/ScenarioConfig
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenarios :- [memmeasure-schemas/Scenario]]
+  (let [environment-timeout (:environment-timeout scenario-config)]
+    (log/infof "Setting environment timeout: %s" environment-timeout)
+    (util/set-env-timeout! (:master-conf-dir jruby-puppet-config)
+                           environment-timeout))
   (let [mem-used-before-first-scenario
         (util/take-yourkit-snapshot! mem-output-run-dir "baseline")
 
         scenario-results
         (-> (partial run-scenario
+                     scenario-config
                      jruby-puppet-config
                      mem-output-run-dir)
             (reduce
@@ -178,7 +181,8 @@
               {:mem-inc-for-all-scenarios 0
                :mem-used-before-first-scenario mem-used-before-first-scenario
                :mem-used-after-last-scenario mem-used-before-first-scenario
-               :scenarios []}}
+               :scenarios []
+               :config scenario-config}}
              scenarios)
             :results)
 
