@@ -17,12 +17,12 @@
    :environment-timeout EnvironmentTimeout
    :node-name schema/Str})
 
-(def JRubyPuppetScenarioEntry
+(def JRubyPuppetContainer
   {:container ScriptingContainer
    :jruby-puppet (schema/maybe JRubyPuppet)})
 
 (def ScenarioContext
-  {:jrubies [JRubyPuppetScenarioEntry]
+  {:jrubies [JRubyPuppetContainer]
    schema/Keyword schema/Any})
 
 (def StepRuntimeData
@@ -49,17 +49,18 @@
 
 (def ScenarioResultWithName
   {:name schema/Str
+   :config {schema/Keyword schema/Any}
    :results ScenarioResult})
 
 (def ScenariosResult
   {:mem-inc-for-all-scenarios schema/Int
    :mem-used-after-last-scenario schema/Int
    :mem-used-before-first-scenario schema/Int
-   :scenarios [ScenarioResultWithName]
-   :config ScenarioConfig})
+   :scenarios [ScenarioResultWithName]})
 
 (def ScenarioRuntimeData
-  {:context ScenarioContext
+  {:config {schema/Keyword schema/Any}
+   :context ScenarioContext
    :results ScenarioResult})
 
 (def ScenariosRuntimeData
