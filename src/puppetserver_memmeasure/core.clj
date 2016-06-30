@@ -87,7 +87,6 @@
              jruby-puppet-config
              mem-output-run-dir
              (scenario-data scenario-config))
-            (assoc :config scenario-config)
             (cheshire/generate-stream (io/writer result-file)))
         (log/infof "Results written to: %s" (.getCanonicalPath result-file)))
       (log/errorf "Unable to locate scenario data for: %s" scenario-ns-symbol))))

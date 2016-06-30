@@ -62,10 +62,12 @@
    step-base-name :- schema/Str
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
+   scenario-config :- {schema/Keyword schema/Any}
    steps-data :- (schema/pred coll?)
    mem-at-scenario-start :- schema/Int]
   (loop [iter 0
-         acc {:context scenario-context
+         acc {:config scenario-config
+              :context scenario-context
               :results {:mem-at-scenario-start mem-at-scenario-start
                         :mem-at-scenario-end mem-at-scenario-start
                         :mem-inc-for-first-step 0
@@ -79,6 +81,7 @@
     (if-let [step-data (first remaining-steps-data)]
       (do
         (let [body-results (body-fn (:context acc)
+                                    scenario-config
                                     iter
                                     step-data)
               step-full-name (str step-base-name "-" iter)
@@ -151,6 +154,7 @@
         (update-in [:results :scenarios]
                    conj
                    {:name scenario-name
+                    :config (:config scenario-output)
                     :results (:results scenario-output)})
         (assoc :context (:context scenario-output)))))
 
@@ -183,8 +187,7 @@
               {:mem-inc-for-all-scenarios 0
                :mem-used-before-first-scenario mem-used-before-first-scenario
                :mem-used-after-last-scenario mem-used-before-first-scenario
-               :scenarios []
-               :config scenario-config}}
+               :scenarios []}}
              scenarios)
             :results)
 
@@ -203,6 +206,9 @@
 
   * context - Map of data populated by previous scenario steps.  This
               corresponds to the ScenarioContext schema.
+
+  * config - Free form map of configuration data, passed along from the
+             scenario-config argument to this function.
 
   * ctr - Counter representing the current step being executed.  The counter
           value for the current step is 0.  The counter is incremented by
@@ -223,6 +229,7 @@
    step-base-name :- schema/Str
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
+   scenario-config :- {schema/Keyword schema/Any}
    steps-data :- (schema/pred coll?)]
   (let [mem-at-scenario-start (util/take-yourkit-snapshot! mem-output-run-dir
                                                            (str
@@ -233,6 +240,7 @@
                          step-base-name
                          mem-output-run-dir
                          scenario-context
+                         scenario-config
                          steps-data
                          mem-at-scenario-start)
         mem-following-first-step (or (mem-after-first-step scenario-output)

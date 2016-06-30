@@ -49,17 +49,18 @@
 
 (def ScenarioResultWithName
   {:name schema/Str
+   :config {schema/Keyword schema/Any}
    :results ScenarioResult})
 
 (def ScenariosResult
   {:mem-inc-for-all-scenarios schema/Int
    :mem-used-after-last-scenario schema/Int
    :mem-used-before-first-scenario schema/Int
-   :scenarios [ScenarioResultWithName]
-   :config ScenarioConfig})
+   :scenarios [ScenarioResultWithName]})
 
 (def ScenarioRuntimeData
-  {:context ScenarioContext
+  {:config {schema/Keyword schema/Any}
+   :context ScenarioContext
    :results ScenarioResult})
 
 (def ScenariosRuntimeData

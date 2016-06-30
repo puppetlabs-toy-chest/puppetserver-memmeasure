@@ -14,6 +14,7 @@
   [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    scenario-context :- memmeasure-schemas/ScenarioContext
    _
+   _
    _]
   {:context
    (update
@@ -27,6 +28,7 @@
   :- memmeasure-schemas/StepRuntimeData
   [jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    scenario-context :- memmeasure-schemas/ScenarioContext
+   _
    iter :- schema/Int
    jruby :- memmeasure-schemas/JRubyPuppetScenarioEntry]
   {:context
@@ -56,6 +58,7 @@
    "create-container"
    mem-output-run-dir
    scenario-context
+   {:num-containers num-containers}
    (range num-containers)))
 
 (schema/defn ^:always-validate run-initialize-puppet-in-jruby-containers-scenario
@@ -67,13 +70,15 @@
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (scenario/run-scenario-body-over-steps
-   (partial run-initialize-puppet-in-jruby-containers-step
-            jruby-puppet-config)
-   "initialize-puppet-in-container"
-   mem-output-run-dir
-   scenario-context
-   (:jrubies scenario-context)))
+  (let [jrubies (:jrubies scenario-context)]
+    (scenario/run-scenario-body-over-steps
+     (partial run-initialize-puppet-in-jruby-containers-step
+              jruby-puppet-config)
+     "initialize-puppet-in-container"
+     mem-output-run-dir
+     scenario-context
+     {:num-containers (count jrubies)}
+     jrubies)))
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
   [_]

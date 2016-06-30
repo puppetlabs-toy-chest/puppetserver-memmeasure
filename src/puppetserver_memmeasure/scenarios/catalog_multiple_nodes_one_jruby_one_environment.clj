@@ -12,15 +12,22 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
+(def LocalScenarioConfig
+  {:num-containers schema/Int
+   :num-catalogs-per-node schema/Int
+   :environment-timeout memmeasure-schemas/EnvironmentTimeout
+   :node-names [schema/Str]})
+
 (schema/defn ^:always-validate run-catalog-multiple-nodes-one-jruby-one-environment-step
   :- memmeasure-schemas/StepRuntimeData
   [jruby-puppet :- JRubyPuppet
    mem-output-run-dir :- File
    step-base-name :- schema/Str
    scenario-context :- memmeasure-schemas/ScenarioContext
+   {:keys [node-names]} :- LocalScenarioConfig
    iter :- schema/Int
    _]
-  (doseq [node-name ["small" "empty"]]
+  (doseq [node-name node-names]
     (util/get-catalog jruby-puppet
                       (fs/file mem-output-run-dir
                                (str
@@ -61,6 +68,10 @@
       step-base-name
       mem-output-run-dir
       scenario-context
+      {:num-containers 1
+       :num-catalogs-per-node num-catalogs
+       :environment-timeout environment-timeout
+       :node-names ["small" "empty"]}
       (range num-catalogs)))))
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
