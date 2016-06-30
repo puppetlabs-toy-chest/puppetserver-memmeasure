@@ -158,7 +158,8 @@
   :- memmeasure-schemas/ScenariosResult
   "Execute a vector of supplied scenarios in order and aggregate memory
   measurement results."
-  [scenario-config :- memmeasure-schemas/ScenarioConfig
+  [scenario-ns :- schema/Str
+   scenario-config :- memmeasure-schemas/ScenarioConfig
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenarios :- [memmeasure-schemas/Scenario]]
@@ -167,7 +168,8 @@
     (util/set-env-timeout! (:master-conf-dir jruby-puppet-config)
                            environment-timeout))
   (let [mem-used-before-first-scenario
-        (util/take-yourkit-snapshot! mem-output-run-dir "baseline")
+        (util/take-yourkit-snapshot! mem-output-run-dir
+                                     (str scenario-ns "-" "baseline"))
 
         scenario-results
         (-> (partial run-scenario
@@ -188,7 +190,7 @@
 
         mem-used-after-last-scenario (util/take-yourkit-snapshot!
                                       mem-output-run-dir
-                                      "final")]
+                                      (str scenario-ns "-" "final"))]
     (-> scenario-results
         (assoc :mem-used-after-last-scenario mem-used-after-last-scenario)
         (assoc :mem-inc-for-all-scenarios (- mem-used-after-last-scenario

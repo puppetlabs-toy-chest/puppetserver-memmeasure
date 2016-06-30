@@ -57,7 +57,11 @@
         jruby-puppet-config (jruby-puppet-core/initialize-config config)
         scenario-ns (:scenario-ns parsed-cli-options)
         mem-output-run-dir (fs/file (:output-dir parsed-cli-options))
-        result-file (fs/file mem-output-run-dir "results.json")
+        result-file (fs/file mem-output-run-dir
+                             (str
+                              scenario-ns
+                              "-"
+                              "results.json"))
         scenario-ns-file (str "src/puppetserver_memmeasure/scenarios/"
                               (str/replace scenario-ns "-" "_")
                               ".clj")
@@ -77,8 +81,9 @@
                    (.getCanonicalPath mem-output-run-dir))
         (ks/mkdirs! mem-output-run-dir)
         (log/info "Config for simulation: " scenario-config)
-        (-> scenario-config
+        (-> scenario-ns
             (scenario/run-scenarios
+             scenario-config
              jruby-puppet-config
              mem-output-run-dir
              (scenario-data scenario-config))

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 base_output_dir=./target/mem-measure/`date +"%Y%m%d-%H%M%S"`
 environment_timeout=""
 num_catalogs=""
@@ -33,8 +35,10 @@ set +x
 echo "running scenarios, outputting to: $base_output_dir..."
 set -x
 ${run_cmd}basic-scripting-containers -s basic-scripting-containers
-${run_cmd}single-catalog-compile-empty-env-timeout-0 -e 0 -n empty -s single-catalog-compile
-${run_cmd}single-catalog-compile-empty-env-timeout-unlimited -e unlimited -n empty -s single-catalog-compile
-${run_cmd}single-catalog-compile-small-env-timeout-0 -e 0 -n small -s single-catalog-compile
-${run_cmd}single-catalog-compile-small-env-timeout-unlimited -e unlimited -n small -s single-catalog-compile
+${run_cmd}catalog-empty-one-jruby-one-environment-timeout-0 -e 0 -n empty -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-empty-one-jruby-one-environment-timeout-unlimited -e unlimited -n empty -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -e 0 -n small -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -e 0 -s catalog-multiple-nodes-one-jruby-one-environment
+${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -e unlimited -s catalog-multiple-nodes-one-jruby-one-environment
 set +x
