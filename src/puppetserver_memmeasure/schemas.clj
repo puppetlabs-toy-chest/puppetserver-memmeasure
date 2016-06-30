@@ -17,12 +17,12 @@
    :environment-timeout EnvironmentTimeout
    :node-name schema/Str})
 
-(def JRubyPuppetScenarioEntry
+(def JRubyPuppetContainer
   {:container ScriptingContainer
    :jruby-puppet (schema/maybe JRubyPuppet)})
 
 (def ScenarioContext
-  {:jrubies [JRubyPuppetScenarioEntry]
+  {:jrubies [JRubyPuppetContainer]
    schema/Keyword schema/Any})
 
 (def StepRuntimeData

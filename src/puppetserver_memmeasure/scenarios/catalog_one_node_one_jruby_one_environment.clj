@@ -18,7 +18,7 @@
    :environment-timeout memmeasure-schemas/EnvironmentTimeout
    :node-name schema/Str})
 
-(schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment
+(schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment-step
   :- memmeasure-schemas/StepRuntimeData
   [jruby-puppet :- JRubyPuppet
    mem-output-run-dir :- File
@@ -59,7 +59,7 @@
                 (.getSetting jruby-puppet
                              "environment_timeout"))
      (scenario/run-scenario-body-over-steps
-      (partial run-catalog-one-node-one-jruby-one-environment
+      (partial run-catalog-one-node-one-jruby-one-environment-step
                jruby-puppet
                mem-output-run-dir
                step-base-name)
@@ -74,7 +74,7 @@
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
   [scenario-config :- memmeasure-schemas/ScenarioConfig]
-  [{:name (format "compile a single %s catalog with environment timeout %s"
+  [{:name (format "compile the %s catalog with environment timeout %s"
                   (:node-name scenario-config)
                   (:environment-timeout scenario-config))
     :fn run-catalog-one-node-one-jruby-one-environment-scenario}])

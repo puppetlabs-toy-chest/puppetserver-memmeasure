@@ -17,7 +17,8 @@
            (java.io File)
            (java.util HashMap)
            (com.puppetlabs.puppetserver JRubyPuppet)
-           (com.puppetlabs.puppetserver.jruby ScriptingContainer)))
+           (com.puppetlabs.puppetserver.jruby ScriptingContainer)
+           (clojure.lang IFn)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -85,15 +86,51 @@
                  [puppet-config puppetserver-config])
      JRubyPuppet)))
 
+(schema/defn ^:always-validate create-jruby-puppet-container
+  [config :- jruby-schemas/JRubyPuppetConfig]
+  (let [scripting-container (create-scripting-container config)
+        jruby-puppet (initialize-puppet-in-container
+                      scripting-container
+                      config)]
+    {:container scripting-container
+     :jruby-puppet jruby-puppet}))
+
+(schema/defn ^:always-validate terminate-jruby-puppet-container
+  [{:keys [jruby-puppet container]} :- memmeasure-schemas/JRubyPuppetContainer]
+  (.terminate jruby-puppet)
+  (.terminate container))
+
 (defmacro with-jruby-puppet
   [jruby-puppet config & body]
-  `(let [scripting-container# (create-scripting-container ~config)
-         ~jruby-puppet (initialize-puppet-in-container scripting-container# ~config)]
+  `(let [jruby-puppet-container# (create-jruby-puppet-container ~config)
+         ~jruby-puppet (:jruby-puppet jruby-puppet-container#)]
      (try
        ~@body
        (finally
-         (.terminate ~jruby-puppet)
-         (.terminate scripting-container#)))))
+         (terminate-jruby-puppet-container jruby-puppet-container#)))))
+
+(schema/defn ^:always-validate create-jruby-puppet-containers :-
+  [memmeasure-schemas/JRubyPuppetContainer]
+  [size :- schema/Int
+   config :- jruby-schemas/JRubyPuppetConfig]
+  (for [_ (range size)]
+    (create-jruby-puppet-container config)))
+
+(schema/defn ^:always-validate terminate-jruby-puppet-containers
+  [pool :- [memmeasure-schemas/JRubyPuppetContainer]]
+  (doseq [pool-instance pool]
+    (terminate-jruby-puppet-container pool-instance)))
+
+(defmacro with-jruby-puppets
+  [jruby-puppets size config & body]
+  `(let [jruby-puppet-containers# (create-jruby-puppet-containers
+                                   ~size
+                                   ~config)
+         ~jruby-puppets (map :jruby-puppet jruby-puppet-containers#)]
+     (try
+       ~@body
+       (finally
+         (terminate-jruby-puppet-containers jruby-puppet-containers#)))))
 
 (schema/defn ^:always-validate get-catalog :- {schema/Keyword schema/Any}
   [jruby-puppet :- JRubyPuppet

@@ -30,14 +30,14 @@
    scenario-context :- memmeasure-schemas/ScenarioContext
    _
    iter :- schema/Int
-   jruby :- memmeasure-schemas/JRubyPuppetScenarioEntry]
+   jruby-puppet-container :- memmeasure-schemas/JRubyPuppetContainer]
   {:context
    (update-in
     scenario-context
     [:jrubies iter :jruby-puppet]
     (constantly
      (util/initialize-puppet-in-container
-      (:container jruby)
+      (:container jruby-puppet-container)
       jruby-puppet-config)))})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

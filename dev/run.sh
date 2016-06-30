@@ -41,4 +41,7 @@ ${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -e 0 -n small -s cat
 ${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-one-jruby-one-environment
 ${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -e 0 -s catalog-multiple-nodes-one-jruby-one-environment
 ${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -e unlimited -s catalog-multiple-nodes-one-jruby-one-environment
+${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-0 -e 0 -n small -s catalog-one-node-multiple-jrubies-one-environment
+${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-multiple-jrubies-one-environment
+
 set +x
