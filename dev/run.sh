@@ -35,13 +35,13 @@ set +x
 echo "running scenarios, outputting to: $base_output_dir..."
 set -x
 ${run_cmd}basic-scripting-containers -s basic-scripting-containers
-${run_cmd}catalog-empty-one-jruby-one-environment-timeout-0 -e 0 -n empty -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-empty-one-jruby-one-environment-timeout-unlimited -e unlimited -n empty -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -e 0 -n small -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -e 0 -s catalog-multiple-nodes-one-jruby-one-environment
-${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -e unlimited -s catalog-multiple-nodes-one-jruby-one-environment
-${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-0 -e 0 -n small -s catalog-one-node-multiple-jrubies-one-environment
-${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-multiple-jrubies-one-environment
+${run_cmd}catalog-empty-one-jruby-one-environment-timeout-0 -t 0 -n empty -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-empty-one-jruby-one-environment-timeout-unlimited -t unlimited -n empty -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -t 0 -n small -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -t unlimited -n small -s catalog-one-node-one-jruby-one-environment
+${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -t 0 -s catalog-multiple-nodes-one-jruby-one-environment
+${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -t unlimited -s catalog-multiple-nodes-one-jruby-one-environment
+${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-0 -t 0 -n small -s catalog-one-node-multiple-jrubies-one-environment
+${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-unlimited -t unlimited -n small -s catalog-one-node-multiple-jrubies-one-environment
 
 set +x

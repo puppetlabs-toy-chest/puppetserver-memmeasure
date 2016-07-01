@@ -27,7 +27,7 @@
     :id :num-catalogs
     :default default-num-catalogs
     :parse-fn #(Integer/parseInt %)]
-   ["-e" "--environment-timeout ENV_TIMEOUT"
+   ["-t" "--environment-timeout ENV_TIMEOUT"
     "Environment timeout to use - 0 or 'unlimited'"
     :default default-environment-timeout
     :validate-fn #(schema/validate memmeasure-schemas/EnvironmentTimeout %)]
