@@ -14,6 +14,7 @@
 (def ScenarioConfig
   {:num-containers schema/Int
    :num-catalogs schema/Int
+   :environment-name schema/Str
    :environment-timeout EnvironmentTimeout
    :node-name schema/Str})
 

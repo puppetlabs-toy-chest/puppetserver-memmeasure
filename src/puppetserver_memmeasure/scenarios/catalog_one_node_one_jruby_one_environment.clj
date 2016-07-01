@@ -15,6 +15,7 @@
 (def LocalScenarioConfig
   {:num-containers schema/Int
    :num-catalogs schema/Int
+   :environment-name schema/Str
    :environment-timeout memmeasure-schemas/EnvironmentTimeout
    :node-name schema/Str})
 
@@ -24,7 +25,7 @@
    mem-output-run-dir :- File
    step-base-name :- schema/Str
    scenario-context :- memmeasure-schemas/ScenarioContext
-   {:keys [node-name] :- LocalScenarioConfig}
+   {:keys [environment-name node-name] :- LocalScenarioConfig}
    iter :- schema/Int
    _]
   (util/get-catalog jruby-puppet
@@ -35,6 +36,7 @@
                               iter
                               "-catalog.json"))
                     node-name
+                    environment-name
                     (format "role::by_size::%s" node-name))
   {:context scenario-context})
 
@@ -44,7 +46,8 @@
 (schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
   "Compile a catalog 'num-catalogs' number of times for a specific node"
-  [{:keys [environment-timeout
+  [{:keys [environment-name
+           environment-timeout
            node-name
            num-catalogs] :- memmeasure-schemas/ScenarioConfig}
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
@@ -68,6 +71,7 @@
       scenario-context
       {:num-containers 1
        :num-catalogs num-catalogs
+       :environment-name environment-name
        :environment-timeout environment-timeout
        :node-name node-name}
       (range num-catalogs)))))

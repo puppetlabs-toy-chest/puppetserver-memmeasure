@@ -3,14 +3,17 @@
 set -e
 
 base_output_dir=./target/mem-measure/`date +"%Y%m%d-%H%M%S"`
+environment_name="20160622_SERVER_1390_catalog_memory_measurement"
 environment_timeout=""
 num_catalogs=""
 num_containers=""
 
-while getopts ":c:j:o:" opt; do
+while getopts ":c:e:j:o:" opt; do
   case $opt in
      c)
        num_catalogs="-c $OPTARG ";;
+     e)
+       environment_name=$OPTARG;;
      j)
        num_containers="-j $OPTARG ";;
      o)
@@ -24,12 +27,12 @@ while getopts ":c:j:o:" opt; do
    esac
  done
 
-run_cmd="lein go -- ${num_catalogs}${num_containers}-o ${base_output_dir}/"
+run_cmd="lein go -- -e ${environment_name} ${num_catalogs}${num_containers}-o ${base_output_dir}/"
 echo "run is $run_cmd"
 
 echo "deploying r10k environment..."
 set -x
-r10k deploy environment 20160622-SERVER-1390-catalog-memory-measurement -p -v debug -c ./dev/r10k.yaml
+r10k deploy environment ${environment_name} -p -v debug -c ./dev/r10k.yaml
 set +x
 
 echo "running scenarios, outputting to: $base_output_dir..."

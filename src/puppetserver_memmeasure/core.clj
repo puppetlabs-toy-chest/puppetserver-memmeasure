@@ -20,6 +20,7 @@
 (def default-node-name "small")
 (def default-num-containers 4)
 (def default-num-catalogs 4)
+(def default-environment-name "production")
 (def default-environment-timeout "unlimited")
 
 (def cli-specs
@@ -27,10 +28,9 @@
     :id :num-catalogs
     :default default-num-catalogs
     :parse-fn #(Integer/parseInt %)]
-   ["-t" "--environment-timeout ENV_TIMEOUT"
-    "Environment timeout to use - 0 or 'unlimited'"
-    :default default-environment-timeout
-    :validate-fn #(schema/validate memmeasure-schemas/EnvironmentTimeout %)]
+   ["-e" "--environment-name ENV_NAME" "Name of environment to use"
+    :id :environment-name
+    :default default-environment-name]
    ["-j" "--num-containers NUM_CONTAINERS" "Number of JRuby containers to use"
     :id :num-containers
     :default default-num-containers
@@ -44,7 +44,12 @@
    ["-s" "--scenario-ns SCENARIO_NS"
     "Namespace to run scenarios from"
     :id :scenario-ns
-    :default "basic-scripting-containers"]])
+    :default "basic-scripting-containers"]
+   ["-t" "--environment-timeout ENV_TIMEOUT"
+    "Environment timeout to use - 0 or 'unlimited'"
+    :id :environment-timeout
+    :default default-environment-timeout
+    :validate-fn #(schema/validate memmeasure-schemas/EnvironmentTimeout %)]])
 
 (schema/defn ^:always-validate mem-run!
   "Mainline function for the memcapture program.  Supplied with a
@@ -71,6 +76,7 @@
         scenario-config (select-keys parsed-cli-options
                                      [:num-containers
                                       :num-catalogs
+                                      :environment-name
                                       :environment-timeout
                                       :node-name])]
     (log/infof "Loading scenario ns file: %s" scenario-ns-file)
