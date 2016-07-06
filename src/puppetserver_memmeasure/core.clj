@@ -17,9 +17,10 @@
   (:import (clojure.lang ExceptionInfo)))
 
 (def default-output-dir "./target/mem-measure")
-(def default-node-name "small")
+(def default-node-names ["small"])
 (def default-num-containers 4)
 (def default-num-catalogs 4)
+(def default-num-environments 4)
 (def default-environment-name "production")
 (def default-environment-timeout "unlimited")
 
@@ -35,12 +36,18 @@
     :id :num-containers
     :default default-num-containers
     :parse-fn #(Integer/parseInt %)]
-   ["-n" "--node-name NODE_NAME" "Node name to use for catalog requests"
-    :id :node-name
-    :default default-node-name]
+   ["-n" "--node-names NODE_NAMES"
+    "Node name(s) to use - separated by commas for catalog requests"
+    :id :node-names
+    :default default-node-names
+    :parse-fn #(str/split % #",")]
    ["-o" "--output-dir OUTPUT_DIR" "Output directory"
     :id :output-dir
     :default default-output-dir]
+   ["-r" "--num-environments NUM_ENVIRONMENTS" "Number of environments to use"
+    :id :num-environments
+    :default default-num-environments
+    :parse-fn #(Integer/parseInt %)]
    ["-s" "--scenario-ns SCENARIO_NS"
     "Namespace to run scenarios from"
     :id :scenario-ns
@@ -76,9 +83,10 @@
         scenario-config (select-keys parsed-cli-options
                                      [:num-containers
                                       :num-catalogs
+                                      :num-environments
                                       :environment-name
                                       :environment-timeout
-                                      :node-name])]
+                                      :node-names])]
     (log/infof "Loading scenario ns file: %s" scenario-ns-file)
     (load-file scenario-ns-file)
     (if-let [scenario-data (resolve scenario-ns-symbol)]
@@ -92,7 +100,7 @@
              scenario-config
              jruby-puppet-config
              mem-output-run-dir
-             (scenario-data scenario-config))
+             (scenario-data))
             (cheshire/generate-stream (io/writer result-file)))
         (log/infof "Results written to: %s" (.getCanonicalPath result-file)))
       (log/errorf "Unable to locate scenario data for: %s" scenario-ns-symbol))))

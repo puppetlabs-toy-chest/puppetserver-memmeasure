@@ -14,9 +14,10 @@
 (def ScenarioConfig
   {:num-containers schema/Int
    :num-catalogs schema/Int
+   :num-environments schema/Int
    :environment-name schema/Str
    :environment-timeout EnvironmentTimeout
-   :node-name schema/Str})
+   :node-names [schema/Str]})
 
 (def JRubyPuppetContainer
   {:container ScriptingContainer

@@ -84,7 +84,7 @@
                                     scenario-config
                                     iter
                                     step-data)
-              step-full-name (str step-base-name "-" iter)
+              step-full-name (str step-base-name "-" (inc iter))
               mem-size (util/take-yourkit-snapshot! mem-output-run-dir
                                                     step-full-name)
               mem-after-previous-step (if-let [last-mem
@@ -116,7 +116,7 @@
   :- memmeasure-schemas/ScenariosRuntimeData
   "Execute the supplied scenario-fn and aggregate memory measurement results.
   Callback to the :fn from the supplied scenario to obtain intermediate results.
-  Three arguments are supplied for each callback:
+  Four arguments are supplied for each callback:
 
   * scenario-config - The scenario-config provided as a parameter to this
                       function.

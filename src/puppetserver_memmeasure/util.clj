@@ -71,10 +71,10 @@
            http-client-idle-timeout-milliseconds
            use-legacy-auth-conf] :as config} :- jruby-schemas/JRubyPuppetConfig]
   (.runScriptlet scripting-container "require 'puppet/server/master'")
-  (let [env-registry          (puppet-env/environment-registry)
-        ruby-puppet-class     (.runScriptlet scripting-container "Puppet::Server::Master")
-        puppet-config         (jruby-internal/config->puppet-config config)
-        puppetserver-config  (HashMap.)]
+  (let [env-registry (puppet-env/environment-registry)
+        ruby-puppet-class (.runScriptlet scripting-container "Puppet::Server::Master")
+        puppet-config (jruby-internal/config->puppet-config config)
+        puppetserver-config (HashMap.)]
     (when http-client-ssl-protocols
       (.put puppetserver-config "ssl_protocols" (into-array String http-client-ssl-protocols)))
     (when http-client-cipher-suites
@@ -121,8 +121,16 @@
   [memmeasure-schemas/JRubyPuppetContainer]
   [size :- schema/Int
    config :- jruby-schemas/JRubyPuppetConfig]
-  (for [_ (range size)]
-    (create-jruby-puppet-container config)))
+  (log/infof "Creating %d JRubyPuppet containers" size)
+  (let [containers
+        (doall (for [cnt (range size)]
+                 (do
+                   (log/infof "Creating JRubyPuppet container %d of %d"
+                              (inc cnt)
+                              size)
+                   (create-jruby-puppet-container config))))]
+    (log/infof "Finished creating %d JRubyPuppet containers" size)
+    containers))
 
 (schema/defn ^:always-validate terminate-jruby-puppet-containers
   [pool :- [memmeasure-schemas/JRubyPuppetContainer]]
@@ -139,6 +147,31 @@
        ~@body
        (finally
          (terminate-jruby-puppet-containers jruby-puppet-containers#)))))
+
+(defmacro with-environments
+  [environments size base-environment-name master-code-dir & body]
+  `(let [environment-dir# (fs/file ~master-code-dir "environments")
+         ~environments
+          (let [base-environment-dir# (fs/file environment-dir#
+                                               ~base-environment-name)]
+            (doall
+             (for [cnt# (range ~size)
+                   :let [copy-environment-name# (str ~base-environment-name
+                                                     "_"
+                                                     (inc cnt#))
+                         copy-environment-dir# (fs/file environment-dir#
+                                                        copy-environment-name#)]]
+               (do
+                 (fs/delete-dir copy-environment-dir#)
+                 (fs/copy-dir base-environment-dir# copy-environment-dir#)
+                 copy-environment-name#))))]
+     (try
+       ~@body
+       (finally
+         (doseq [copy-environment-name# ~environments]
+           (let [copy-environment-dir# (fs/file environment-dir#
+                                                copy-environment-name#)]
+             (fs/delete-dir copy-environment-dir#)))))))
 
 (schema/defn ^:always-validate get-catalog :- {schema/Keyword schema/Any}
   [jruby-puppet :- JRubyPuppet
