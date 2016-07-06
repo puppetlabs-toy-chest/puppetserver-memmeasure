@@ -81,7 +81,7 @@
      jrubies)))
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
-  [_]
+  []
   [{:name "create empty scripting containers"
     :fn run-empty-scripting-containers-scenario}
    {:name "initialize puppet into scripting containers"

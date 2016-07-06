@@ -1,4 +1,4 @@
-(ns puppetserver-memmeasure.scenarios.catalog-one-node-one-jruby-one-environment
+(ns puppetserver-memmeasure.scenarios.catalog-one-jruby-one-environment
   (:require [puppetserver-memmeasure.scenario :as scenario]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
@@ -12,46 +12,48 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
-(def LocalScenarioConfig
-  {:num-containers schema/Int
-   :num-catalogs schema/Int
-   :environment-timeout memmeasure-schemas/EnvironmentTimeout
-   :node-name schema/Str})
-
 (schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment-step
   :- memmeasure-schemas/StepRuntimeData
   [jruby-puppet :- JRubyPuppet
    mem-output-run-dir :- File
    step-base-name :- schema/Str
    scenario-context :- memmeasure-schemas/ScenarioContext
-   {:keys [node-name] :- LocalScenarioConfig}
+   {:keys [environment-name node-names] :- memmeasure-schemas/ScenarioConfig}
    iter :- schema/Int
    _]
-  (util/get-catalog jruby-puppet
-                    (fs/file mem-output-run-dir
-                             (str
-                              step-base-name
-                              "-"
-                              iter
-                              "-catalog.json"))
-                    node-name
-                    (format "role::by_size::%s" node-name))
+  (doseq [node-name node-names]
+    (log/infof "Compiling catalog %d for node %s"
+               (inc iter)
+               node-name)
+    (util/get-catalog jruby-puppet
+                      (fs/file mem-output-run-dir
+                               (str
+                                step-base-name
+                                "-node-"
+                                node-name
+                                "-catalog-"
+                                (inc iter)
+                                ".json"))
+                      node-name
+                      environment-name
+                      (format "role::by_size::%s" node-name)))
   {:context scenario-context})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment-scenario
+(schema/defn ^:always-validate run-catalog-one-jruby-one-environment-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
-  "Compile a catalog 'num-catalogs' number of times for a specific node"
-  [{:keys [environment-timeout
-           node-name
-           num-catalogs] :- memmeasure-schemas/ScenarioConfig}
+  "Compile a catalog 'num-catalogs' number of times for a single environment
+  and JRubyPuppet."
+  [{:keys [environment-name
+           environment-timeout
+           node-names
+           num-catalogs]} :- memmeasure-schemas/ScenarioConfig
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (let [step-base-name (format "catalog-%s-one-jruby-one-env-timeout-%s"
-                            node-name environment-timeout)]
+  (let [step-base-name "catalog-one-jruby-one-environment"]
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
@@ -68,13 +70,13 @@
       scenario-context
       {:num-containers 1
        :num-catalogs num-catalogs
+       :num-environments 1
+       :environment-name environment-name
        :environment-timeout environment-timeout
-       :node-name node-name}
+       :node-names node-names}
       (range num-catalogs)))))
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
-  [scenario-config :- memmeasure-schemas/ScenarioConfig]
-  [{:name (format "compile the %s catalog with environment timeout %s"
-                  (:node-name scenario-config)
-                  (:environment-timeout scenario-config))
-    :fn run-catalog-one-node-one-jruby-one-environment-scenario}])
+  []
+  [{:name "compile catalogs in one jruby and environment"
+    :fn run-catalog-one-jruby-one-environment-scenario}])

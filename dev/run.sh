@@ -3,18 +3,24 @@
 set -e
 
 base_output_dir=./target/mem-measure/`date +"%Y%m%d-%H%M%S"`
+environment_name="20160622_SERVER_1390_catalog_memory_measurement"
 environment_timeout=""
 num_catalogs=""
 num_containers=""
+num_environments=""
 
-while getopts ":c:j:o:" opt; do
+while getopts ":c:e:j:o:r:" opt; do
   case $opt in
      c)
        num_catalogs="-c $OPTARG ";;
+     e)
+       environment_name=$OPTARG;;
      j)
        num_containers="-j $OPTARG ";;
      o)
        base_output_dir="$OPTARG";;
+     r)
+       num_environments="-r $OPTARG";;
      \?)
        echo "Invalid option: -$OPTARG" >&2
        exit 1;;
@@ -24,24 +30,26 @@ while getopts ":c:j:o:" opt; do
    esac
  done
 
-run_cmd="lein go -- ${num_catalogs}${num_containers}-o ${base_output_dir}/"
+run_cmd="lein go -- -e ${environment_name} ${num_catalogs}${num_containers}${num_environments} -o ${base_output_dir}/"
 echo "run is $run_cmd"
 
 echo "deploying r10k environment..."
 set -x
-r10k deploy environment 20160622-SERVER-1390-catalog-memory-measurement -p -v debug -c ./dev/r10k.yaml
+r10k deploy environment ${environment_name} -p -v debug -c ./dev/r10k.yaml
 set +x
 
 echo "running scenarios, outputting to: $base_output_dir..."
 set -x
 ${run_cmd}basic-scripting-containers -s basic-scripting-containers
-${run_cmd}catalog-empty-one-jruby-one-environment-timeout-0 -e 0 -n empty -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-empty-one-jruby-one-environment-timeout-unlimited -e unlimited -n empty -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -e 0 -n small -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-one-jruby-one-environment
-${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -e 0 -s catalog-multiple-nodes-one-jruby-one-environment
-${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -e unlimited -s catalog-multiple-nodes-one-jruby-one-environment
-${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-0 -e 0 -n small -s catalog-one-node-multiple-jrubies-one-environment
-${run_cmd}catalog-small-multiple-jrubies-one-environment-timeout-unlimited -e unlimited -n small -s catalog-one-node-multiple-jrubies-one-environment
+${run_cmd}catalog-empty-one-jruby-one-environment-timeout-0 -t 0 -n empty -s catalog-one-jruby-one-environment
+${run_cmd}catalog-empty-one-jruby-one-environment-timeout-unlimited -t unlimited -n empty -s catalog-one-jruby-one-environment
+${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -t 0 -n small -s catalog-one-jruby-one-environment
+${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -t unlimited -n small -s catalog-one-jruby-one-environment
+${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -t 0 -n small,empty -s catalog-one-jruby-one-environment
+${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -t unlimited -n small,empty -s catalog-one-jruby-one-environment
+${run_cmd}catalog-small-group-by-jruby-timeout-0 -t 0 -n small -s catalog-group-by-jruby
+${run_cmd}catalog-small-group-by-jruby-timeout-unlimited -t unlimited -n small -s catalog-group-by-jruby
+${run_cmd}catalog-small-group-by-environment-0 -t 0 -n small -s catalog-group-by-environment
+${run_cmd}catalog-small-group-by-environment-unlimited -t unlimited -n small -s catalog-group-by-environment
 
 set +x
