@@ -69,10 +69,13 @@
         jruby-puppet-config (jruby-puppet-core/initialize-config config)
         scenario-ns (:scenario-ns parsed-cli-options)
         mem-output-run-dir (fs/file (:output-dir parsed-cli-options))
+        result-file-base-name (let [base-name (fs/base-name mem-output-run-dir)]
+                                (if (empty? base-name)
+                                  ""
+                                  (str base-name "-")))
         result-file (fs/file mem-output-run-dir
                              (str
-                              scenario-ns
-                              "-"
+                              result-file-base-name
                               "results.json"))
         scenario-ns-file (str "src/puppetserver_memmeasure/scenarios/"
                               (str/replace scenario-ns "-" "_")

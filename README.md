@@ -142,9 +142,14 @@ While the tool is running, various output files - including memory snapshots
 taken during individual scenario steps and a "results.json" file with the final
 test results - are written into an output directory.  The name of the
 output directory can be controlled via configuration - see the
-[Options](#options) section for more details.  Log messages indicate the
-fully-qualified paths to each of the files that the tool writes.  Some examples
-include:
+[Options](#options) section for more details.  The "results.json" file's name
+will be prefixed with the base name of the output directory.  For example, if
+the output directory were "/home/user/my-test-output", the corresponding
+results file would be written to
+"/home/user/my-test-output/my-test-output-results.json".
+    
+Log messages indicate the fully-qualified paths to each of the files that the
+tool writes.  Some examples include:
 
 ~~~
 2016-06-20 17:35:18,433 INFO  [main] [p.core] Creating output dir for run: .../target/mem-measure
@@ -322,27 +327,32 @@ memory measurement tool.  Options in this section include:
   environment within a jruby instance.  If not specified and the scenario
   requests catalogs, `4` catalogs will be requested.
 
-* `-e | --environment-timeout ENV_TIMEOUT` - Prior to running the scenario,
-  configure a 'puppet.conf' file in the directory referenced by the
-  `jruby-puppet.master-conf-dir` setting from the Puppet Server / Trapperkeeper
-  configuration file.  If not specified, the `environment_timeout` will be
-  set to `unlimited`.
+* `-e | --environment-name ENV_NAME` - For a relevant scenario, specifies the
+  base environment name that the scenario should use.  If not specified,
+  `production` will be used as the base environment name.
 
 * `-j | --num-containers NUM_CONTAINERS` - For a relevant scenario, specifies
   the number of JRuby ScriptingContainers that the scenario should create.  If
   not specified and the scenario creates containers, `4` containers will be
   created.
   
-* `-n | --node-name NODE_NAME` - For a relevant scenario, specifies the node
-  name that the scenario should use (e.g., when requesting a catalog for the
-  node).  If not specified and the scenario uses a node name, `small` will be
-  used as the default.
+* `-n | --node-names NODE_NAMES` - For a relevant scenario, specifies the node
+  name(s) that the scenario should use (e.g., when requesting a catalog for the
+  node).  When multiple names are desired, the names should be delimited by a
+  comma.  For example, a value of `small,empty` would configure the scenario
+  to perform a catalog compilation for a `small` node separately from that for
+  an `empty` node.  If not specified and the scenario uses a node name, `small`
+  will be used as the default.
 
 * `-o | --output-dir OUTPUT_DIR` - The directory under which the output (memory
   snapshots, etc.) of the tool will be written.  This setting is optional.  If
   it is not specified, output will be written under a base directory in the
   repo clone called "./target/mem-measure".
-  
+
+* `-r | --num-environments NUM_ENVIRONMENTS` - For a relevant scenario,
+  specifies the number of environments that the scenario should create /
+  compile catalogs within.  If not specified, `4` environments will be used.
+ 
 * `-s | --scenario-ns SCENARIO_NS` - Namespace of the scenario that should be
   executed.  Relates to the subpath of the scenario implementation's Clojure
   namespace.  To execute the scenario in the Clojure
@@ -350,4 +360,8 @@ memory measurement tool.  Options in this section include:
   "single-catalog-compile" would need to be specified.  If not specified,
   the "basic-scripting-container" scenario is run by default.
   
-  
+* `-t | --environment-timeout ENV_TIMEOUT` - Prior to running the scenario,
+  configure a 'puppet.conf' file in the directory referenced by the
+  `jruby-puppet.master-conf-dir` setting from the Puppet Server / Trapperkeeper
+  configuration file.  If not specified, the `environment_timeout` will be
+  set to `unlimited`.  
