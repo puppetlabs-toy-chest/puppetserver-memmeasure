@@ -41,15 +41,28 @@ set +x
 echo "running scenarios, outputting to: $base_output_dir..."
 set -x
 ${run_cmd}basic-scripting-containers -s basic-scripting-containers
+
 ${run_cmd}catalog-empty-one-jruby-one-environment-timeout-0 -t 0 -n empty -s catalog-one-jruby-one-environment
 ${run_cmd}catalog-empty-one-jruby-one-environment-timeout-unlimited -t unlimited -n empty -s catalog-one-jruby-one-environment
 ${run_cmd}catalog-small-one-jruby-one-environment-timeout-0 -t 0 -n small -s catalog-one-jruby-one-environment
 ${run_cmd}catalog-small-one-jruby-one-environment-timeout-unlimited -t unlimited -n small -s catalog-one-jruby-one-environment
+
 ${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-0 -t 0 -n small,empty -s catalog-one-jruby-one-environment
 ${run_cmd}catalog-multiple-nodes-one-jruby-one-environment-timeout-unlimited -t unlimited -n small,empty -s catalog-one-jruby-one-environment
+
+${run_cmd}catalog-empty-group-by-jruby-timeout-0 -t 0 -n empty -s catalog-group-by-jruby
+${run_cmd}catalog-empty-group-by-jruby-timeout-unlimited -t unlimited -n empty -s catalog-group-by-jruby
 ${run_cmd}catalog-small-group-by-jruby-timeout-0 -t 0 -n small -s catalog-group-by-jruby
 ${run_cmd}catalog-small-group-by-jruby-timeout-unlimited -t unlimited -n small -s catalog-group-by-jruby
+
+${run_cmd}catalog-empty-group-by-environment-0 -t 0 -n empty -s catalog-group-by-environment
+${run_cmd}catalog-empty-group-by-environment-unlimited -t unlimited -n empty -s catalog-group-by-environment
 ${run_cmd}catalog-small-group-by-environment-0 -t 0 -n small -s catalog-group-by-environment
 ${run_cmd}catalog-small-group-by-environment-unlimited -t unlimited -n small -s catalog-group-by-environment
+
+${run_cmd}catalog-empty-unique-environment-per-jruby-timeout-0 -t 0 -n empty -s catalog-unique-environment-per-jruby
+${run_cmd}catalog-empty-unique-environment-per-jruby-timeout-unlimited -t unlimited -n empty -s catalog-unique-environment-per-jruby
+${run_cmd}catalog-small-unique-environment-per-jruby-timeout-0 -t 0 -n small -s catalog-unique-environment-per-jruby
+${run_cmd}catalog-small-unique-environment-per-jruby-timeout-unlimited -t unlimited -n small -s catalog-unique-environment-per-jruby
 
 set +x
