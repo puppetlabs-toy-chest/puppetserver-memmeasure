@@ -17,7 +17,7 @@
   (:import (clojure.lang ExceptionInfo)))
 
 (def default-output-dir "./target/mem-measure")
-(def default-node-names ["small"])
+(def default-nodes "small,role::by_size::small")
 (def default-num-containers 4)
 (def default-num-catalogs 4)
 (def default-num-environments 4)
@@ -36,11 +36,12 @@
     :id :num-containers
     :default default-num-containers
     :parse-fn #(Integer/parseInt %)]
-   ["-n" "--node-names NODE_NAMES"
-    "Node name(s) to use - separated by commas for catalog requests"
-    :id :node-names
-    :default default-node-names
-    :parse-fn #(str/split % #",")]
+   ["-n" "--nodes NODES"
+    (str "Nodes to use for compiling catalogs.  "
+         "Separate name of node with class to verify from output with commas.  "
+         "Separate multiple name/class pairs with semicolons.")
+    :id :nodes
+    :default default-nodes]
    ["-o" "--output-dir OUTPUT_DIR" "Output directory"
     :id :output-dir
     :default default-output-dir]
@@ -57,6 +58,16 @@
     :id :environment-timeout
     :default default-environment-timeout
     :validate-fn #(schema/validate memmeasure-schemas/EnvironmentTimeout %)]])
+
+(schema/defn ^:always-validate nodes-from-cli-string
+  :- [memmeasure-schemas/Node]
+  [nodes-cli-string :- schema/Str]
+  (vec
+   (for [node-opts (str/split nodes-cli-string #";")]
+     (let [[node-name
+            expected-class-in-catalog-for-node] (str/split node-opts #",")]
+       {:name node-name
+        :expected-class-in-catalog expected-class-in-catalog-for-node}))))
 
 (schema/defn ^:always-validate mem-run!
   "Mainline function for the memcapture program.  Supplied with a
@@ -83,13 +94,15 @@
         scenario-ns-symbol (symbol (str "puppetserver-memmeasure.scenarios."
                                         (:scenario-ns parsed-cli-options)
                                         "/scenario-data"))
-        scenario-config (select-keys parsed-cli-options
-                                     [:num-containers
-                                      :num-catalogs
-                                      :num-environments
-                                      :environment-name
-                                      :environment-timeout
-                                      :node-names])]
+        scenario-config (assoc
+                         (select-keys parsed-cli-options
+                                      [:num-containers
+                                       :num-catalogs
+                                       :num-environments
+                                       :environment-name
+                                       :environment-timeout])
+                         :nodes
+                         (nodes-from-cli-string (:nodes parsed-cli-options)))]
     (log/infof "Loading scenario ns file: %s" scenario-ns-file)
     (load-file scenario-ns-file)
     (if-let [scenario-data (resolve scenario-ns-symbol)]

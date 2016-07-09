@@ -15,28 +15,30 @@
 (schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment-step
   :- memmeasure-schemas/StepRuntimeData
   [jruby-puppet :- JRubyPuppet
-   mem-output-run-dir :- File
    step-base-name :- schema/Str
+   mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
-   {:keys [environment-name node-names] :- memmeasure-schemas/ScenarioConfig}
+   {:keys [environment-name nodes] :- memmeasure-schemas/ScenarioConfig}
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    iter :- schema/Int
    _]
-  (doseq [node-name node-names]
+  (doseq [{:keys [name expected-class-in-catalog]} nodes]
     (log/infof "Compiling catalog %d for node %s"
                (inc iter)
-               node-name)
+               name)
     (util/get-catalog jruby-puppet
                       (fs/file mem-output-run-dir
                                (str
                                 step-base-name
                                 "-node-"
-                                node-name
+                                name
                                 "-catalog-"
                                 (inc iter)
                                 ".json"))
-                      node-name
+                      name
                       environment-name
-                      (format "role::by_size::%s" node-name)))
+                      jruby-puppet-config
+                      expected-class-in-catalog))
   {:context scenario-context})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,7 +50,7 @@
   and JRubyPuppet."
   [{:keys [environment-name
            environment-timeout
-           node-names
+           nodes
            num-catalogs]} :- memmeasure-schemas/ScenarioConfig
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
@@ -57,14 +59,9 @@
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
-     (log/infof "Using environment timeout: %s"
-                (.getSetting jruby-puppet
-                             "environment_timeout"))
      (scenario/run-scenario-body-over-steps
       (partial run-catalog-one-node-one-jruby-one-environment-step
-               jruby-puppet
-               mem-output-run-dir
-               step-base-name)
+               jruby-puppet)
       step-base-name
       mem-output-run-dir
       scenario-context
@@ -73,7 +70,8 @@
        :num-environments 1
        :environment-name environment-name
        :environment-timeout environment-timeout
-       :node-names node-names}
+       :nodes nodes}
+      jruby-puppet-config
       (range num-catalogs)))))
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]

@@ -7,6 +7,10 @@
 (def EnvironmentTimeout
   (schema/enum 0 "0" "unlimited"))
 
+(def Node
+  {:name schema/Str
+   :expected-class-in-catalog (schema/maybe schema/Str)})
+
 (def Scenario
   {:name schema/Str
    :fn IFn})
@@ -17,7 +21,7 @@
    :num-environments schema/Int
    :environment-name schema/Str
    :environment-timeout EnvironmentTimeout
-   :node-names [schema/Str]})
+   :nodes [Node]})
 
 (def JRubyPuppetContainer
   {:container ScriptingContainer

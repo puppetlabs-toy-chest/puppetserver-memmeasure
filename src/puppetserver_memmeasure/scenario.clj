@@ -3,7 +3,8 @@
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
             [clojure.tools.logging :as log]
-            [schema.core :as schema])
+            [schema.core :as schema]
+            [me.raynes.fs :as fs])
   (:import (java.io File)
            (clojure.lang IFn)))
 
@@ -63,6 +64,7 @@
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
    scenario-config :- {schema/Keyword schema/Any}
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    steps-data :- (schema/pred coll?)
    mem-at-scenario-start :- schema/Int]
   (loop [iter 0
@@ -80,8 +82,11 @@
          remaining-steps-data steps-data]
     (if-let [step-data (first remaining-steps-data)]
       (do
-        (let [body-results (body-fn (:context acc)
+        (let [body-results (body-fn step-base-name
+                                    mem-output-run-dir
+                                    (:context acc)
                                     scenario-config
+                                    jruby-puppet-config
                                     iter
                                     step-data)
               step-full-name (str step-base-name "-" (inc iter))
@@ -169,7 +174,9 @@
    scenarios :- [memmeasure-schemas/Scenario]]
   (let [environment-timeout (:environment-timeout scenario-config)]
     (log/infof "Setting environment timeout: %s" environment-timeout)
-    (util/set-env-timeout! (:master-conf-dir jruby-puppet-config)
+    (util/set-env-timeout! (fs/file (:master-code-dir jruby-puppet-config)
+                                    "environments"
+                                    (:environment-name scenario-config))
                            environment-timeout))
   (let [mem-used-before-first-scenario
         (util/take-yourkit-snapshot! mem-output-run-dir
@@ -202,13 +209,22 @@
 (schema/defn ^:always-validate run-scenario-body-over-steps
   :- memmeasure-schemas/ScenarioRuntimeData
   "Callback to the supplied body-fn once for each instance in the supplied
-  steps-data.  Three arguments are supplied for each callback:
+  steps-data.  Several arguments are supplied for each callback:
+
+  * step-base-name - Base name for a scenario step.
+
+  * mem-output-run-dir - Directory under which output for the scenario
+                         should be written.
 
   * context - Map of data populated by previous scenario steps.  This
               corresponds to the ScenarioContext schema.
 
-  * config - Free form map of configuration data, passed along from the
-             scenario-config argument to this function.
+  * scenario-config - Free form map of configuration data, passed along from the
+                      scenario-config argument to this function.
+
+  * jruby-puppet-config - Map of JRubyPuppet instance configuration data, passed
+                          alone from the scenario-config argument to this
+                          function.
 
   * ctr - Counter representing the current step being executed.  The counter
           value for the current step is 0.  The counter is incremented by
@@ -230,6 +246,7 @@
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
    scenario-config :- {schema/Keyword schema/Any}
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    steps-data :- (schema/pred coll?)]
   (let [mem-at-scenario-start (util/take-yourkit-snapshot! mem-output-run-dir
                                                            (str
@@ -241,6 +258,7 @@
                          mem-output-run-dir
                          scenario-context
                          scenario-config
+                         jruby-puppet-config
                          steps-data
                          mem-at-scenario-start)
         mem-following-first-step (or (mem-after-first-step scenario-output)
