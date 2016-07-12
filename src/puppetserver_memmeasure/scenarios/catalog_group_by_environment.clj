@@ -14,19 +14,20 @@
 
 (schema/defn ^:always-validate run-catalog-group-by-environment-step
   :- memmeasure-schemas/StepRuntimeData
-  [mem-output-run-dir :- File
+  [jruby-puppets :- [JRubyPuppet]
    step-base-name :- schema/Str
-   jruby-puppets :- [JRubyPuppet]
+   mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
-   {:keys [node-names num-catalogs] :- memmeasure-schemas/ScenarioConfig}
+   {:keys [nodes num-catalogs] :- memmeasure-schemas/ScenarioConfig}
+   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    iter :- schema/Int
    environment-name :- schema/Str]
   (doseq [jruby-puppet jruby-puppets
-          node-name node-names
+          {:keys [name expected-class-in-catalog]} nodes
           catalog-ctr (range num-catalogs)]
     (log/infof "Compiling catalog %d for node %s in container %d for env %s"
                (inc catalog-ctr)
-               node-name
+               name
                (inc (.indexOf jruby-puppets jruby-puppet))
                environment-name)
     (util/get-catalog jruby-puppet
@@ -36,15 +37,16 @@
                                 "-name-"
                                 environment-name
                                 "-node-"
-                                node-name
+                                name
                                 "-jruby-"
                                 (inc iter)
                                 "-catalog-"
                                 (inc catalog-ctr)
                                 ".json"))
-                      node-name
+                      name
                       environment-name
-                      (format "role::by_size::%s" node-name)))
+                      jruby-puppet-config
+                      expected-class-in-catalog))
   {:context scenario-context})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -75,13 +77,12 @@
       jruby-puppet-config
       (scenario/run-scenario-body-over-steps
        (partial run-catalog-group-by-environment-step
-                mem-output-run-dir
-                step-base-name
                 jruby-puppets)
        step-base-name
        mem-output-run-dir
        scenario-context
        scenario-config
+       jruby-puppet-config
        environments)))))
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]

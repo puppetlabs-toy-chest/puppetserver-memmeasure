@@ -170,7 +170,12 @@ JSON tool (`python -m json-tool <json file>`) - from one example run:
 {
     "config": {
         "environment-timeout": "0",
-        "node-name": "small",
+        "nodes": [
+          {
+            "expected-class-in-catalog": "role::by_size::small",
+            "name": "empty"
+          }
+        ],
         "num-catalogs": 10,
         "num-containers": 4
     },
@@ -336,13 +341,32 @@ memory measurement tool.  Options in this section include:
   not specified and the scenario creates containers, `4` containers will be
   created.
   
-* `-n | --node-names NODE_NAMES` - For a relevant scenario, specifies the node
-  name(s) that the scenario should use (e.g., when requesting a catalog for the
-  node).  When multiple names are desired, the names should be delimited by a
-  comma.  For example, a value of `small,empty` would configure the scenario
-  to perform a catalog compilation for a `small` node separately from that for
-  an `empty` node.  If not specified and the scenario uses a node name, `small`
-  will be used as the default.
+* `-n | --nodes NODES` - For a relevant scenario, specifies one or more pairs,
+  delimited by semicolons, where each pair contains a node name and, optionally,
+  a comma and name of a class that is expected appear in the response for a
+  catalog requested for the node.
+  
+  Examples:
+  
+  - `small` - Use the node name `small`.  If the scenario compiles catalogs,
+    catalogs will be compiled for the `small` node.
+  - `small,role::by_size::small` - Use the node name `small`.  For any
+    catalogs requested for the node, validate that the response includes a
+    class named `role::by_size::small`.  If the response does not contain
+    the class, an exception is thrown and the scenario is terminated.
+  - `small;empty` - Use the node names of `small` and `empty`.  If the scenario
+    compiles catalogs, catalogs will be compiled for both the `small` and
+    `empty` node.
+  - `small,role::by_size::small;empty,role::by_size_empty` - Use the node
+    names of `small` and `empty`.  If a catalog is compiled for the `small`
+    node and the response does not include a class named `role::by_size::small`,
+    an exception is thrown and the scenario is terminated.  If a catalog is
+    compiled for the `empty` node and the response does not include a class
+    named `role::by_size::empty`, an exception is thrown and the scenario is
+    terminated.
+    
+  If not specified and the scenario uses a node name,
+  `small,role::by_size::small` will be used as the default.
 
 * `-o | --output-dir OUTPUT_DIR` - The directory under which the output (memory
   snapshots, etc.) of the tool will be written.  This setting is optional.  If
