@@ -133,7 +133,9 @@
   [memmeasure-schemas/JRubyPuppetContainer]
   [size :- schema/Int
    config :- jruby-schemas/JRubyPuppetConfig]
-  (log/infof "Creating %d JRubyPuppet containers" size)
+  (log/infof "Creating %d JRubyPuppet container%s"
+             size
+             (if (= 1 size) "" "s"))
   (let [containers
         (doall (for [cnt (range size)]
                  (do
@@ -141,7 +143,9 @@
                               (inc cnt)
                               size)
                    (create-jruby-puppet-container config))))]
-    (log/infof "Finished creating %d JRubyPuppet containers" size)
+    (log/infof "Finished creating %d JRubyPuppet container%s"
+               size
+               (if (= 1 size) "" "s"))
     containers))
 
 (schema/defn ^:always-validate terminate-jruby-puppet-containers
