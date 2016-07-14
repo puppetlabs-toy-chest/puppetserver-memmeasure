@@ -55,27 +55,37 @@ run_catalog_scenarios_for_node()
   set -x
 
   # run one-jruby-one-environment
-  ${run_cmd}catalog-${node_name}-one-jruby-one-environment-timeout-0 \
+  ${run_cmd}catalog-${node_name}-group-by-catalog-timeout-0 \
     -c ${num_catalogs} -t 0 -n ${node_name_and_class} -j 1 -r 1 \
-    -s catalog-one-jruby-one-environment
-  ${run_cmd}catalog-${node_name}-one-jruby-one-environment-timeout-unlimited \
+    -s catalog-group-by-catalog
+  ${run_cmd}catalog-${node_name}-group-by-catalog-timeout-unlimited \
     -c ${num_catalogs} -t unlimited -n ${node_name_and_class} -j 1 -r 1 \
-    -s catalog-one-jruby-one-environment
+    -s catalog-group-by-catalog
 
-  # run group-by-jruby with single environment
-  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-timeout-0 \
-    -c ${num_catalogs} -t 0 -n ${node_name_and_class} -j ${num_containers} \
-    -r 1 -s catalog-group-by-jruby
-  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-timeout-unlimited \
-    -c ${num_catalogs} -t unlimited -n ${node_name_and_class} \
+  # run group-by-jruby with single environment and single catalog
+  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-0 \
+    -c 1 -t 0 -n ${node_name_and_class} \
+    -j ${num_containers} -r 1 -s catalog-group-by-jruby
+  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-unlimited \
+    -c 1 -t unlimited -n ${node_name_and_class} \
     -j ${num_containers} -r 1 -s catalog-group-by-jruby
 
-  if [ "$num_environments" != "1" ]; then
-    # run group-by-jruby with configured number of environments
-    ${run_cmd}catalog-${node_name}-group-by-jruby-${num_environments}-envs-timeout-0 \
-      -c ${num_catalogs} -t 0 -n ${node_name_and_class} -j ${num_containers} \
-      -r ${num_environments} -s catalog-group-by-jruby
-    ${run_cmd}catalog-${node_name}-group-by-jruby-${num_environments}-envs-timeout-unlimited \
+  if [ "$num_catalogs" != "1" ]; then
+    # run group-by-jruby with single environment and multiple catalogs
+    ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-0 \
+      -c ${num_catalogs} -t 0 -n ${node_name_and_class} \
+      -j ${num_containers} -r 1 -s catalog-group-by-jruby
+    ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-unlimited \
+      -c ${num_catalogs} -t unlimited -n ${node_name_and_class} \
+      -j ${num_containers} -r 1 -s catalog-group-by-jruby
+  fi
+  
+  if [ "$num_environments" != "1" ] && [ "$num_environments" != "1" ]; then
+    # run group-by-jruby with multiple environments and multiple catalogs
+    ${run_cmd}catalog-${node_name}-group-by-jruby-${num_environments}-envs-${num_catalogs}-catalogs-timeout-0 \
+      -c ${num_catalogs} -t 0 -n ${node_name_and_class} \
+      -j ${num_containers} -r ${num_environments} -s catalog-group-by-jruby
+    ${run_cmd}catalog-${node_name}-group-by-jruby-${num_environments}-envs-${num_catalogs}-catalogs-timeout-unlimited \
       -c ${num_catalogs} -t unlimited -n ${node_name_and_class} \
       -j ${num_containers} -r ${num_environments} -s catalog-group-by-jruby
   fi
@@ -89,7 +99,7 @@ run_catalog_scenarios_for_node()
     -r ${num_environments} -s catalog-group-by-environment
 
   if [ "$num_containers" != "1" ]; then
-    # run group-by-environment with configured number of jrubies
+    # run group-by-environment with multiple jrubies
     ${run_cmd}catalog-${node_name}-group-by-environment-${num_containers}-jrubies-timeout-0 \
       -c ${num_catalogs} -t 0 -n ${node_name_and_class} -j ${num_containers} \
       -r ${num_environments} -s catalog-group-by-environment

@@ -1,4 +1,4 @@
-(ns puppetserver-memmeasure.scenarios.catalog-one-jruby-one-environment
+(ns puppetserver-memmeasure.scenarios.catalog-group-by-catalog
   (:require [puppetserver-memmeasure.scenario :as scenario]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
@@ -12,7 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
 
-(schema/defn ^:always-validate run-catalog-one-node-one-jruby-one-environment-step
+(schema/defn ^:always-validate run-catalog-group-by-catalog-step
   :- memmeasure-schemas/StepRuntimeData
   [jruby-puppet :- JRubyPuppet
    step-base-name :- schema/Str
@@ -44,7 +44,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate run-catalog-one-jruby-one-environment-scenario
+(schema/defn ^:always-validate run-catalog-group-by-catalog-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
   "Compile a catalog 'num-catalogs' number of times for a single environment
   and JRubyPuppet."
@@ -55,12 +55,12 @@
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (let [step-base-name "catalog-one-jruby-one-environment"]
+  (let [step-base-name "catalog-group-by-catalog"]
     (util/with-jruby-puppet
      jruby-puppet
      jruby-puppet-config
      (scenario/run-scenario-body-over-steps
-      (partial run-catalog-one-node-one-jruby-one-environment-step
+      (partial run-catalog-group-by-catalog-step
                jruby-puppet)
       step-base-name
       mem-output-run-dir
@@ -76,5 +76,5 @@
 
 (schema/defn ^:always-validate scenario-data :- [memmeasure-schemas/Scenario]
   []
-  [{:name "compile catalogs in one jruby and environment"
-    :fn run-catalog-one-jruby-one-environment-scenario}])
+  [{:name "compile catalogs in one jruby and environment, grouping by catalog"
+    :fn run-catalog-group-by-catalog-scenario}])
