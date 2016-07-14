@@ -9,6 +9,7 @@ lein_run_cmd="go"
 num_catalogs="5"
 num_containers="5"
 num_environments="5"
+profile="jruby17"
 
 default_node_names=(empty small)
 nodes=
@@ -17,7 +18,7 @@ do
   nodes="${nodes}${node_name},role::by_size::${node_name};"
 done
 
-while getopts ":c:e:f:ij:n:o:r:" opt; do
+while getopts ":c:e:f:ij:n:o:p:r:" opt; do
   case $opt in
      c)
        num_catalogs="$OPTARG";;
@@ -33,6 +34,8 @@ while getopts ":c:e:f:ij:n:o:r:" opt; do
        nodes="$OPTARG";;
      o)
        base_output_dir="$OPTARG";;
+     p)
+       profile="$OPTARG";;
      r)
        num_environments="$OPTARG";;
      \?)
@@ -44,7 +47,8 @@ while getopts ":c:e:f:ij:n:o:r:" opt; do
    esac
  done
 
-run_cmd="lein ${lein_run_cmd} -- -e ${environment_name} -o ${base_output_dir}/"
+run_cmd="lein with-profile ${profile} ${lein_run_cmd} -- "\
+"-e ${environment_name} -o ${base_output_dir}/"
 
 run_catalog_scenarios_for_node()
 {

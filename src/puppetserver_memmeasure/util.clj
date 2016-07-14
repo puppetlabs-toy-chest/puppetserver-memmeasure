@@ -71,7 +71,7 @@
   [{:keys [ruby-load-path gem-home compile-mode]}
    :- jruby-schemas/JRubyPuppetConfig]
   (doto (jruby-puppet-internal/empty-scripting-container
-         ruby-load-path
+         (cons "classpath:/puppetserver-lib" ruby-load-path)
          gem-home
          compile-mode)
     (.runScriptlet "require 'jar-dependencies'")))
