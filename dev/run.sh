@@ -74,7 +74,10 @@ run_catalog_scenarios_for_node()
     -c 1 -t unlimited -n ${node_name_and_class} \
     -j ${num_containers} -r 1 -s catalog-group-by-jruby
 
+  set +x
+
   if [ "$num_catalogs" != "1" ]; then
+    set -x
     # run group-by-jruby with single environment and multiple catalogs
     ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-0 \
       -c ${num_catalogs} -t 0 -n ${node_name_and_class} \
@@ -82,17 +85,22 @@ run_catalog_scenarios_for_node()
     ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-unlimited \
       -c ${num_catalogs} -t unlimited -n ${node_name_and_class} \
       -j ${num_containers} -r 1 -s catalog-group-by-jruby
+    set +x
   fi
   
   if [ "$num_environments" != "1" ] && [ "$num_environments" != "1" ]; then
     # run group-by-jruby with multiple environments and multiple catalogs
+    set -x
     ${run_cmd}catalog-${node_name}-group-by-jruby-${num_environments}-envs-${num_catalogs}-catalogs-timeout-0 \
       -c ${num_catalogs} -t 0 -n ${node_name_and_class} \
       -j ${num_containers} -r ${num_environments} -s catalog-group-by-jruby
     ${run_cmd}catalog-${node_name}-group-by-jruby-${num_environments}-envs-${num_catalogs}-catalogs-timeout-unlimited \
       -c ${num_catalogs} -t unlimited -n ${node_name_and_class} \
       -j ${num_containers} -r ${num_environments} -s catalog-group-by-jruby
+    set +x
   fi
+
+  set -x
 
   # run group-by-environment with single jruby
   ${run_cmd}catalog-${node_name}-group-by-environment-1-jruby-timeout-0 \
@@ -102,7 +110,10 @@ run_catalog_scenarios_for_node()
     -c ${num_catalogs} -t unlimited -n ${node_name_and_class} -j 1 \
     -r ${num_environments} -s catalog-group-by-environment
 
+  set +x
+
   if [ "$num_containers" != "1" ]; then
+    set -x
     # run group-by-environment with multiple jrubies
     ${run_cmd}catalog-${node_name}-group-by-environment-${num_containers}-jrubies-timeout-0 \
       -c ${num_catalogs} -t 0 -n ${node_name_and_class} -j ${num_containers} \
@@ -110,7 +121,10 @@ run_catalog_scenarios_for_node()
     ${run_cmd}catalog-${node_name}-group-by-environment-${num_containers}-jrubies-timeout-unlimited \
       -c ${num_catalogs} -t unlimited -n ${node_name_and_class} \
       -j ${num_containers} -r ${num_environments} -s catalog-group-by-environment
+   set +x
   fi
+
+  set -x
 
   # run unique-environment-per-jruby
   ${run_cmd}catalog-${node_name}-unique-environment-per-jruby-timeout-0 \
@@ -148,4 +162,7 @@ do
   done
 done <<< $nodes
 
+echo "summarizing results..."
+set -x
+lein summarize -d ${base_output_dir} -o ${base_output_dir}/${base_output_dir##*/}-summary.json
 set +x

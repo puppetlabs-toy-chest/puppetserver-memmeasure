@@ -64,6 +64,37 @@
    "request-method" "POST"
    "uri" (format "/puppet/v3/catalog/%s" node-name)})
 
+(def one-mebibyte (Math/pow 2 20))
+(def one-kibibyte (Math/pow 2 10))
+
+(schema/defn ^:always-validate human-readable-byte-count* :- schema/Str
+  [bytes :- schema/Num]
+  (let [bytes-in-kibibytes (/ bytes one-kibibyte)]
+    (cond
+      (> bytes-in-kibibytes 999)
+      (format "%d MiB"
+              (-> bytes
+                  (/ one-mebibyte)
+                  Math/ceil
+                  int))
+
+      (> bytes-in-kibibytes 800) "1 MiB"
+
+      (> bytes-in-kibibytes 200)
+      (format "%d KiB"
+              (-> bytes-in-kibibytes
+                  (/ 100)
+                  Math/ceil
+                  int
+                  (* 100)))
+
+      :else
+      (format "%d KiB"
+              (-> bytes
+                  (/ one-kibibyte)
+                  Math/ceil
+                  int)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
@@ -278,3 +309,13 @@
                   lines-without-env-timeout
                   timeout))))
 
+(schema/defn ^:always-validate json-file->map :- {schema/Keyword schema/Any}
+  [json-file :- (schema/either File schema/Str)]
+  (cheshire/parse-stream (io/reader json-file) true))
+
+(schema/defn ^:always-validate human-readable-byte-count :- schema/Str
+  [bytes :- schema/Num]
+  (let [human-readable-bytes (human-readable-byte-count* (Math/abs bytes))]
+    (if (pos? bytes)
+      human-readable-bytes
+      (format "-%s" human-readable-bytes))))

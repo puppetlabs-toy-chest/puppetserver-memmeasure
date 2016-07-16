@@ -34,7 +34,12 @@
                   "http://nexus.delivery.puppetlabs.net/content/repositories/snapshots/"]]
   :target-path "target/%s"
   :jvm-opts [~yourkit-agentpath-jvm-opt]
-  :aliases {"go" ["trampoline" "run" "--config" "./dev/puppetserver.conf"]}
+  :aliases {"go" ["trampoline" "run" "--config" "./dev/puppetserver.conf"]
+            "diff" ["trampoline" "run" "-m" "puppetserver-memmeasure.diff"]
+            "summarize" ["trampoline"
+                         "run"
+                         "-m"
+                         "puppetserver-memmeasure.summary"]}
   :resource-paths [~yourkit-jar]
   :profiles {:uberjar {:aot :all}
              :jruby17 {:dependencies

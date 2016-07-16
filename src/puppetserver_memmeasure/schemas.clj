@@ -72,3 +72,39 @@
 (def ScenariosRuntimeData
   {:context ScenarioContext
    :results ScenariosResult})
+
+(def SummarizedScenario
+  {:mean-mem-inc-after-first-step schema/Num
+   :mean-mem-inc-after-second-step schema/Num
+   :mem-inc-for-first-step schema/Int
+   :readable-mean-mem-inc-after-first-step schema/Str
+   :readable-mean-mem-inc-after-second-step schema/Str
+   :readable-mem-inc-for-first-step schema/Str
+   :config {schema/Keyword schema/Any}})
+
+(def SummarizedScenarios
+  {schema/Keyword SummarizedScenario})
+
+(def SummarizedScenarioNamespaces
+  {schema/Keyword SummarizedScenarios})
+
+(def DiffScenario
+  {:base SummarizedScenario
+   :compare SummarizedScenario
+   :compare-mean-mem-inc-after-first-step-over-base schema/Num
+   :compare-mean-mem-inc-after-second-step-over-base schema/Num
+   :compare-mem-inc-for-first-step schema/Int
+   :readable-compare-mean-mem-inc-after-first-step-over-base schema/Str
+   :readable-compare-mean-mem-inc-after-second-step-over-base schema/Str
+   :readable-mem-inc-for-first-step schema/Str})
+
+(def DiffScenarios
+  {schema/Keyword DiffScenario})
+
+(def DiffScenarioNamespaces
+  {schema/Keyword DiffScenarios})
+
+(def FullDiffScenarioNamespaces
+  {:base-file schema/Str
+   :compare-file schema/Str
+   :diff DiffScenarioNamespaces})

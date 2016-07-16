@@ -66,12 +66,14 @@
          {:num-containers num-containers}
          jruby-puppet-config
          (range num-containers))]
-    (if-let [first-container (some-> results
-                                     (get-in [:context :jrubies])
-                                     first
-                                     :container)]
+    (when-let [first-container (some-> results
+                                       (get-in [:context :jrubies])
+                                       first
+                                       :container)]
       (log/infof "ScriptingContainer Ruby version info - %s"
-                (.getSupportedRubyVersion first-container)))
+                 (.getSupportedRubyVersion first-container))
+      (log/infof "ScriptingContainer Compile Mode - %s"
+                 (.getCompileMode first-container)))
     results))
 
 (schema/defn ^:always-validate run-initialize-puppet-in-jruby-containers-scenario
