@@ -3,7 +3,8 @@
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
             [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
-            [schema.core :as schema])
+            [schema.core :as schema]
+            [clojure.tools.logging :as log])
   (:import (java.io File)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -56,14 +57,24 @@
    jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
-  (scenario/run-scenario-body-over-steps
-   run-empty-scripting-containers-step
-   "create-container"
-   mem-output-run-dir
-   scenario-context
-   {:num-containers num-containers}
-   jruby-puppet-config
-   (range num-containers)))
+  (let [results
+        (scenario/run-scenario-body-over-steps
+         run-empty-scripting-containers-step
+         "create-container"
+         mem-output-run-dir
+         scenario-context
+         {:num-containers num-containers}
+         jruby-puppet-config
+         (range num-containers))]
+    (when-let [first-container (some-> results
+                                       (get-in [:context :jrubies])
+                                       first
+                                       :container)]
+      (log/infof "ScriptingContainer Ruby version info - %s"
+                 (.getSupportedRubyVersion first-container))
+      (log/infof "ScriptingContainer Compile Mode - %s"
+                 (.getCompileMode first-container)))
+    results))
 
 (schema/defn ^:always-validate run-initialize-puppet-in-jruby-containers-scenario
   :- memmeasure-schemas/ScenarioRuntimeData
