@@ -53,7 +53,7 @@
   (reduce
    (fn [acc path]
      (assoc acc
-       (-> path fs/parent fs/name keyword)
+       (-> path fs/parent (.getName) keyword)
        (scenario-result-summary path)))
    {}
    (fs/find-files base-results-dir #".*-results.json$")))
