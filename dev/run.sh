@@ -67,10 +67,10 @@ run_catalog_scenarios_for_node()
     -s catalog-group-by-catalog
 
   # run group-by-jruby with single environment and single catalog
-  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-0 \
+  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-1-catalog-timeout-0 \
     -c 1 -t 0 -n ${node_name_and_class} \
     -j ${num_containers} -r 1 -s catalog-group-by-jruby
-  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-${num_catalogs}-catalogs-timeout-unlimited \
+  ${run_cmd}catalog-${node_name}-group-by-jruby-1-env-1-catalog-timeout-unlimited \
     -c 1 -t unlimited -n ${node_name_and_class} \
     -j ${num_containers} -r 1 -s catalog-group-by-jruby
 
