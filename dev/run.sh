@@ -4,12 +4,15 @@ set -e
 
 base_output_dir=./target/mem-measure/`date +"%Y%m%d-%H%M%S"`
 deploy="y"
-environment_name="20160622_SERVER_1390_catalog_memory_measurement"
+environment_name="20160808_SERVER_1448_catalog_memory_measurement_with_hiera"
 lein_run_cmd="go"
+master_conf_dir="./target/master-conf-dir"
+env_dir="./target/master-code-dir/environments"
 num_catalogs="5"
 num_containers="5"
 num_environments="5"
 profile="jruby17"
+skip_basic_container_scenarios="n"
 
 default_node_names=(empty small)
 nodes=
@@ -18,7 +21,7 @@ do
   nodes="${nodes}${node_name},role::by_size::${node_name};"
 done
 
-while getopts ":c:e:f:ij:n:o:p:r:" opt; do
+while getopts ":c:e:f:ij:n:o:p:r:s" opt; do
   case $opt in
      c)
        num_catalogs="$OPTARG";;
@@ -38,6 +41,8 @@ while getopts ":c:e:f:ij:n:o:p:r:" opt; do
        profile="$OPTARG";;
      r)
        num_environments="$OPTARG";;
+     s)
+       skip_basic_container_scenarios="y";;
      \?)
        echo "Invalid option: -$OPTARG" >&2
        exit 1;;
@@ -142,14 +147,21 @@ if [[ "$deploy" == "y" ]]; then
   echo "deploying r10k environment..."
   set -x
   r10k deploy environment ${environment_name} -p -v debug -c ./dev/r10k.yaml
+  mkdir -p "${master_conf_dir}"
+  sed "s/.*:datadir:.*/  :datadir: ${env_dir//\//\\/}\/%{environment}\/hieradata/g" \
+    "${env_dir}/${environment_name}/root_files/hiera.yaml" >\
+    "${master_conf_dir}/hiera.yaml"
   set +x
 fi
 
 echo "running scenarios, outputting to: $base_output_dir..."
-set -x
-${run_cmd}basic-scripting-containers -c 0 -j ${num_containers} -r 0 \
-   -s basic-scripting-containers
-set +x
+
+if [[ "$skip_basic_container_scenarios" == "n" ]]; then
+  set -x
+  ${run_cmd}basic-scripting-containers -c 0 -j ${num_containers} -r 0 \
+    -s basic-scripting-containers
+  set +x
+fi
 
 while IFS=';' read -ra nodes_arr
 do
