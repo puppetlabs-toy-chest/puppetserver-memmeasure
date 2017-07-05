@@ -11,7 +11,7 @@ env_dir="./target/master-code-dir/environments"
 num_catalogs="5"
 num_containers="5"
 num_environments="5"
-profile="jruby17"
+profile=""
 skip_basic_container_scenarios="n"
 
 default_node_names=(empty small)
@@ -38,7 +38,7 @@ while getopts ":c:e:f:ij:n:o:p:r:s" opt; do
      o)
        base_output_dir="$OPTARG";;
      p)
-       profile="$OPTARG";;
+       profile="with-profile $OPTARG";;
      r)
        num_environments="$OPTARG";;
      s)
@@ -52,7 +52,7 @@ while getopts ":c:e:f:ij:n:o:p:r:s" opt; do
    esac
  done
 
-run_cmd="lein with-profile ${profile} ${lein_run_cmd} -- "\
+run_cmd="lein ${profile} ${lein_run_cmd} -- "\
 "-e ${environment_name} -o ${base_output_dir}/"
 
 run_catalog_scenarios_for_node()

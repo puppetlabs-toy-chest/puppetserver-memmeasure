@@ -2,7 +2,10 @@
   (:require [puppetserver-memmeasure.scenario :as scenario]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
-            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby-pool-manager.impl.jruby-internal :as jruby-internal]
+            [puppetlabs.services.jruby-pool-manager.jruby-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-puppet-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-core :as jruby-puppet-core]
             [schema.core :as schema]
             [clojure.tools.logging :as log])
   (:import (java.io File)))
@@ -16,7 +19,8 @@
    _
    scenario-context :- memmeasure-schemas/ScenarioContext
    _
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   _
    _
    _]
   {:context
@@ -24,7 +28,7 @@
     scenario-context
     :jrubies
     conj
-    {:container (util/create-scripting-container jruby-puppet-config)
+    {:container (jruby-internal/create-scripting-container jruby-config)
      :jruby-puppet nil})})
 
 (schema/defn ^:always-validate run-initialize-puppet-in-jruby-containers-step
@@ -33,7 +37,8 @@
    _
    scenario-context :- memmeasure-schemas/ScenarioContext
    _
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   _
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    iter :- schema/Int
    jruby-puppet-container :- memmeasure-schemas/JRubyPuppetContainer]
   {:context
@@ -42,8 +47,8 @@
     [:jrubies iter :jruby-puppet]
     (constantly
      (util/initialize-puppet-in-container
-      (:container jruby-puppet-container)
-      jruby-puppet-config)))})
+      jruby-puppet-config
+      (:container jruby-puppet-container))))})
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
@@ -54,7 +59,8 @@
    corresponds to the 'num-containers' parameter.  Memory measurements are
    taken after each container is created."
   [{:keys [num-containers]} :- memmeasure-schemas/ScenarioConfig
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (let [results
@@ -64,6 +70,7 @@
          mem-output-run-dir
          scenario-context
          {:num-containers num-containers}
+         jruby-config
          jruby-puppet-config
          (range num-containers))]
     (when-let [first-container (some-> results
@@ -82,7 +89,8 @@
   'scenario-context' with Ruby Puppet code.  Memory measurements are
    taken after each container is initialized."
   [_
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (let [jrubies (:jrubies scenario-context)]
@@ -92,6 +100,7 @@
      mem-output-run-dir
      scenario-context
      {:num-containers (count jrubies)}
+     jruby-config
      jruby-puppet-config
      jrubies)))
 

@@ -1,7 +1,8 @@
 (ns puppetserver-memmeasure.scenario
   (:require [puppetserver-memmeasure.util :as util]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
-            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby-pool-manager.jruby-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-puppet-schemas]
             [clojure.tools.logging :as log]
             [schema.core :as schema]
             [me.raynes.fs :as fs])
@@ -64,7 +65,8 @@
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
    scenario-config :- {schema/Keyword schema/Any}
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    steps-data :- (schema/pred coll?)
    mem-at-scenario-start :- schema/Int]
   (loop [iter 0
@@ -86,6 +88,7 @@
                                     mem-output-run-dir
                                     (:context acc)
                                     scenario-config
+                                    jruby-config
                                     jruby-puppet-config
                                     iter
                                     step-data)
@@ -126,6 +129,8 @@
   * scenario-config - The scenario-config provided as a parameter to this
                       function.
 
+  * jruby-config - The jruby config provided as a parameter to this function.
+
   * jruby-puppet-config - The jruby-puppet configuration provided as a parameter
                           to this function.
 
@@ -138,7 +143,8 @@
   Each callback should return a map corresponding to the ScenarioRuntimeData
   schema."
   [scenario-config :- memmeasure-schemas/ScenarioConfig
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    acc-results :- memmeasure-schemas/ScenariosRuntimeData
    scenario :- memmeasure-schemas/Scenario]
@@ -146,6 +152,7 @@
         scenario-name (:name scenario)
         _ (log/infof "Running scenario: %s" scenario-name)
         scenario-output (scenario-fn scenario-config
+                                     jruby-config
                                      jruby-puppet-config
                                      mem-output-run-dir
                                      (:context acc-results))
@@ -169,7 +176,8 @@
   measurement results."
   [scenario-ns :- schema/Str
    scenario-config :- memmeasure-schemas/ScenarioConfig
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenarios :- [memmeasure-schemas/Scenario]]
   (let [environment-timeout (:environment-timeout scenario-config)]
@@ -185,6 +193,7 @@
         scenario-results
         (-> (partial run-scenario
                      scenario-config
+                     jruby-config
                      jruby-puppet-config
                      mem-output-run-dir)
             (reduce
@@ -222,8 +231,11 @@
   * scenario-config - Free form map of configuration data, passed along from the
                       scenario-config argument to this function.
 
+  * jruby-config - Map of JRuby configuration data, passed along from the
+                   jruby-config argument to this function.
+
   * jruby-puppet-config - Map of JRubyPuppet instance configuration data, passed
-                          alone from the scenario-config argument to this
+                          along from the jruby-puppet-config argument to this
                           function.
 
   * ctr - Counter representing the current step being executed.  The counter
@@ -246,7 +258,8 @@
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
    scenario-config :- {schema/Keyword schema/Any}
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    steps-data :- (schema/pred coll?)]
   (let [mem-at-scenario-start (util/take-yourkit-snapshot! mem-output-run-dir
                                                            (str
@@ -258,6 +271,7 @@
                          mem-output-run-dir
                          scenario-context
                          scenario-config
+                         jruby-config
                          jruby-puppet-config
                          steps-data
                          mem-at-scenario-start)
