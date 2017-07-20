@@ -2,7 +2,8 @@
   (:require [puppetserver-memmeasure.scenario :as scenario]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
-            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby-pool-manager.jruby-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-puppet-schemas]
             [schema.core :as schema]
             [me.raynes.fs :as fs]
             [clojure.tools.logging :as log])
@@ -19,7 +20,8 @@
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
    {:keys [nodes num-catalogs] :- memmeasure-schemas/ScenarioConfig}
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   _
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    iter :- schema/Int
    environment-name :- schema/Str]
   (doseq [jruby-puppet jruby-puppets
@@ -62,7 +64,8 @@
            num-containers
            num-environments]
     :as scenario-config} :- memmeasure-schemas/ScenarioConfig
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (let [step-base-name "catalog-group-by-environment"]
@@ -74,6 +77,7 @@
      (util/with-jruby-puppets
       jruby-puppets
       num-containers
+      jruby-config
       jruby-puppet-config
       (scenario/run-scenario-body-over-steps
        (partial run-catalog-group-by-environment-step
@@ -82,6 +86,7 @@
        mem-output-run-dir
        scenario-context
        scenario-config
+       jruby-config
        jruby-puppet-config
        environments)))))
 

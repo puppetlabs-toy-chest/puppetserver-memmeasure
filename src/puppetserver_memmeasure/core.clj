@@ -77,7 +77,13 @@
    options :- [schema/Str]]
   (tk-config/initialize-logging! config)
   (let [parsed-cli-options (first (ks/cli! options cli-specs))
-        jruby-puppet-config (jruby-puppet-core/initialize-config config)
+        jruby-config (jruby-puppet-core/initialize-and-create-jruby-config
+                      config)
+        jruby-puppet-config (jruby-puppet-core/initialize-puppet-config
+                             (jruby-puppet-core/extract-http-config
+                              (:http-client config))
+                             (jruby-puppet-core/extract-puppet-config
+                              (:jruby-puppet config)))
         scenario-ns (:scenario-ns parsed-cli-options)
         mem-output-run-dir (fs/file (:output-dir parsed-cli-options))
         result-file-base-name (let [base-name (fs/base-name mem-output-run-dir)]
@@ -114,6 +120,7 @@
         (-> scenario-ns
             (scenario/run-scenarios
              scenario-config
+             jruby-config
              jruby-puppet-config
              mem-output-run-dir
              (scenario-data))

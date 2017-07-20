@@ -100,7 +100,7 @@ To run all scenarios, execute the following from the command line:
 The script performs two steps:
 
 1. Uses the `r10k` gem to deploy an environment from the
-   `puppetlabsl-puppetserver_perf_control` repo.
+   `puppetlabs-puppetserver_perf_control` repo.
    
 2. Via [Leiningen](http://leiningen.org), runs various memory scenarios against
    the Puppet code deployed from the control repo.
@@ -182,8 +182,8 @@ JSON tool (`python -m json-tool <json file>`) - from one example run:
     "mem-inc-for-all-scenarios": 88845648,
     "mem-used-after-last-scenario": 119728136,
     "mem-used-before-first-scenario": 30882488,
-    "num-containers": 4
-    "num-catalogs": 4
+    "num-containers": 4,
+    "num-catalogs": 4,
     "scenarios": [
         {
             "name": "create empty scripting containers",
@@ -389,3 +389,152 @@ memory measurement tool.  Options in this section include:
   `jruby-puppet.master-conf-dir` setting from the Puppet Server / Trapperkeeper
   configuration file.  If not specified, the `environment_timeout` will be
   set to `unlimited`.  
+
+## Summarize
+
+To combine the json output from multiple individual scenario json files
+together, the `lein summarize` alias can be used.  The json output from a
+`lein run` for an individual scenario contains memory measurement info after
+each step performed.  For brevity, `lein summarize` only captures result (and
+not also the per-step) info for each of the scenarios.
+
+Example:
+ 
+    $ lein summarize -d results -o results-summary.json
+
+Options include:
+
+* `-d | --base-results-dir BASE_RESULTS_DIR` - The directory under which json
+  results files to be summarized reside.  File names under this directory which
+  end with `-results.json` are assumed to have scenario results to be summarized.
+
+* `-o | --output-file OUTPUT_FILE` - Output json file into which the summarized
+  scenario information is written.
+
+Here is a subset of the output - pretty-print formatted via the use of Python's
+JSON tool (`python -m json-tool <json file>`) - from one example run:
+
+~~~json
+{
+    "basic-scripting-containers": {
+        "create empty scripting containers": {
+            "config": {
+                "num-containers": 5
+            },
+            "mean-mem-inc-after-first-step": 5017184,
+            "mean-mem-inc-after-second-step": 5006618.666666667,
+            "mem-inc-for-first-step": 11530456,
+            "readable-mean-mem-inc-after-first-step": "5 MiB",
+            "readable-mean-mem-inc-after-second-step": "5 MiB",
+            "readable-mem-inc-for-first-step": "11 MiB"
+        },
+        "initialize puppet into scripting containers": {
+            "config": {
+                "num-containers": 5
+            },
+            ...
+        }
+    },
+    "catalog-medium-group-by-catalog-timeout-0": {
+        "compile catalogs in one jruby and environment, grouping by catalog": {
+            "config": {
+                "environment-name": "20160808_SERVER_1448_catalog_memory_measurement_with_hiera",
+                "environment-timeout": "0",
+                "nodes": [
+                    {
+                        "expected-class-in-catalog": "role::by_size::medium",
+                        "name": "medium"
+                    }
+                ],
+                ...
+            },
+            ...
+        },
+    },
+    ...
+}
+~~~
+
+The summarize output provides keys prefixed by `readable-` where the
+corresponding memory measurement is rounded to a more human-readable value than
+just the raw byte count.  The `readable-` values are expressed either in
+mebibytes (MiB) or kibibytes (KiB), where 1 MiB = 220 bytes = 1,048,576 bytes.
+The following rounding is applied for specific values:
+
+* Values above 999 KiB are rounded up to the nearest MiB.
+
+* Values above 800 KiB are rounded up to 1 MiB.
+
+* Values above 200 KiB are rounded up to the nearest 100th KiB.
+
+* Values below 200 KiB are rounded up to the nearest KiB.
+
+## Diff
+
+To compare the numbers from two summary result files, the `lein diff` alias can
+be used.
+
+Example:
+
+    $ lein diff -b base.json -c compare.json -o diff.json
+
+Options include:
+
+* `-b | --base-summary-file BASE_SUMMARY_FILE` - The base summary file to use
+  in the comparison.
+
+* `-c | --compare-summary-file COMPARE_SUMMARY_FILE` - The summary file to
+  compare to the base file supplied with the `-b` option.
+
+* `-o | --output-file OUTPUT_FILE` - The file to write the diff output into.
+
+Here is a subset of the output - pretty-print formatted via the use of Python's
+JSON tool (`python -m json-tool <json file>`) - from one example run:
+
+~~~json
+{
+    "base-file": "jruby17-compile-mode-off-summary",
+    "compare-file": "jruby9k-compile-mode-off-summary",
+    "diff": {
+        "basic-scripting-containers": {
+            "create empty scripting containers": {
+                "base": {
+                    "config": {
+                        "num-containers": 5
+                    },
+                    "mean-mem-inc-after-first-step": 5015324,
+                    "mean-mem-inc-after-second-step": 5008418.666666667,
+                    "mem-inc-for-first-step": 11706920,
+                    "readable-mean-mem-inc-after-first-step": "5 MiB",
+                    "readable-mean-mem-inc-after-second-step": "5 MiB",
+                    "readable-mem-inc-for-first-step": "12 MiB"
+                },
+                "compare": {
+                    "config": {
+                        "num-containers": 5
+                    },
+                    "mean-mem-inc-after-first-step": 6855322,
+                    "mean-mem-inc-after-second-step": 6849272,
+                    "mem-inc-for-first-step": 17990696,
+                    "readable-mean-mem-inc-after-first-step": "7 MiB",
+                    "readable-mean-mem-inc-after-second-step": "7 MiB",
+                    "readable-mem-inc-for-first-step": "18 MiB"
+                },
+                "compare-mean-mem-inc-after-first-step-over-base": 1839998,
+                "compare-mean-mem-inc-after-second-step-over-base": 1840853.333333333,
+                "compare-mem-inc-for-first-step": 6283776,
+                "readable-compare-mean-mem-inc-after-first-step-over-base": "2 MiB",
+                "readable-compare-mean-mem-inc-after-second-step-over-base": "2 MiB",
+                "readable-mem-inc-for-first-step": "6 MiB"
+            },
+            "initialize puppet into scripting containers": {
+            ...
+            },
+        },
+        "catalog-empty-group-by-catalog-timeout-0": {
+           ...
+        },
+        ...
+    },
+}
+~~~

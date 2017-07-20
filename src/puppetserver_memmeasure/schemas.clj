@@ -1,7 +1,7 @@
 (ns puppetserver-memmeasure.schemas
   (:require [schema.core :as schema])
   (:import (clojure.lang IFn)
-           (com.puppetlabs.puppetserver.jruby ScriptingContainer)
+           (com.puppetlabs.jruby_utils.jruby ScriptingContainer)
            (com.puppetlabs.puppetserver JRubyPuppet)))
 
 (def EnvironmentTimeout

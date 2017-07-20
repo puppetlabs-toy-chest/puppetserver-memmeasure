@@ -3,11 +3,12 @@
             [me.raynes.fs :as fs]
             [schema.core :as schema]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
-            [puppetlabs.services.jruby.jruby-puppet-internal
-             :as jruby-puppet-internal]
+            [puppetlabs.services.jruby-pool-manager.impl.jruby-internal
+             :as jruby-internal]
             [puppetlabs.services.jruby.puppet-environments :as puppet-env]
-            [puppetlabs.services.jruby.jruby-puppet-internal :as jruby-internal]
-            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-core :as jruby-puppet-core]
+            [puppetlabs.services.jruby-pool-manager.jruby-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-puppet-schemas]
             [puppetlabs.services.request-handler.request-handler-core
              :as request-handler-core]
             [cheshire.core :as cheshire]
@@ -18,7 +19,7 @@
            (java.io File)
            (java.util HashMap)
            (com.puppetlabs.puppetserver JRubyPuppet)
-           (com.puppetlabs.puppetserver.jruby ScriptingContainer)))
+           (com.puppetlabs.jruby_utils.jruby ScriptingContainer)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Private
@@ -26,7 +27,7 @@
 (schema/defn catalog-request :- {schema/Str schema/Any}
   [node-name :- schema/Str
    environment-name :- schema/Str
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig]
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig]
   {"authenticated" false,
    "headers" {"accept" "pson, dot, binary", "x-puppet-version" "4.5.2", "user-agent" "Ruby", "host" "rll.corp.puppetlabs.net:8140", "accept-encoding" "gzip;q=1.0,deflate;q=0.6,identity;q=0.3", "content-length" "18473", "content-type" "application/x-www-form-urlencoded"}
    "remote-addr" "10.32.116.16"
@@ -103,51 +104,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Public
 
-(schema/defn ^:always-validate create-scripting-container :- ScriptingContainer
-  [{:keys [ruby-load-path gem-home compile-mode]}
-   :- jruby-schemas/JRubyPuppetConfig]
-  (doto (jruby-puppet-internal/empty-scripting-container
-         (cons "classpath:/puppetserver-lib" ruby-load-path)
-         gem-home
-         compile-mode)
-    (.runScriptlet "require 'jar-dependencies'")))
-
 (schema/defn ^:always-validate initialize-puppet-in-container :- JRubyPuppet
-  [scripting-container :- ScriptingContainer
-   {:keys [http-client-ssl-protocols http-client-cipher-suites
-           http-client-connect-timeout-milliseconds
-           http-client-idle-timeout-milliseconds
-           use-legacy-auth-conf] :as config} :- jruby-schemas/JRubyPuppetConfig]
-  (.runScriptlet scripting-container "require 'puppet/server/master'")
-  (let [env-registry (puppet-env/environment-registry)
-        ruby-puppet-class (.runScriptlet scripting-container "Puppet::Server::Master")
-        puppet-config (jruby-internal/config->puppet-config config)
-        puppetserver-config (HashMap.)]
-    (when http-client-ssl-protocols
-      (.put puppetserver-config "ssl_protocols" (into-array String http-client-ssl-protocols)))
-    (when http-client-cipher-suites
-      (.put puppetserver-config "cipher_suites" (into-array String http-client-cipher-suites)))
-    (.put puppetserver-config "profiler" nil)
-    (.put puppetserver-config "environment_registry" env-registry)
-    (.put puppetserver-config "http_connect_timeout_milliseconds"
-          http-client-connect-timeout-milliseconds)
-    (.put puppetserver-config "http_idle_timeout_milliseconds"
-          http-client-idle-timeout-milliseconds)
-    (.put puppetserver-config "use_legacy_auth_conf" use-legacy-auth-conf)
-    (.callMethodWithArgArray
-     scripting-container
-     ruby-puppet-class
-     "new"
-     (into-array Object
-                 [puppet-config puppetserver-config])
-     JRubyPuppet)))
+  [jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
+   scripting-container :- ScriptingContainer]
+  (:jruby-puppet
+   ((jruby-puppet-core/get-initialize-pool-instance-fn
+     (assoc jruby-puppet-config :http-client-metrics-enabled false)
+     nil
+     nil)
+    {:scripting-container scripting-container})))
 
 (schema/defn ^:always-validate create-jruby-puppet-container
-  [config :- jruby-schemas/JRubyPuppetConfig]
-  (let [scripting-container (create-scripting-container config)
+  [jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig]
+  (let [scripting-container (jruby-internal/create-scripting-container
+                             jruby-config)
         jruby-puppet (initialize-puppet-in-container
-                      scripting-container
-                      config)]
+                      jruby-puppet-config
+                      scripting-container)]
     {:container scripting-container
      :jruby-puppet jruby-puppet}))
 
@@ -157,8 +131,9 @@
   (.terminate container))
 
 (defmacro with-jruby-puppet
-  [jruby-puppet config & body]
-  `(let [jruby-puppet-container# (create-jruby-puppet-container ~config)
+  [jruby-puppet jruby-config jruby-puppet-config & body]
+  `(let [jruby-puppet-container# (create-jruby-puppet-container ~jruby-config
+                                                                ~jruby-puppet-config)
          ~jruby-puppet (:jruby-puppet jruby-puppet-container#)]
      (try
        ~@body
@@ -168,7 +143,8 @@
 (schema/defn ^:always-validate create-jruby-puppet-containers :-
   [memmeasure-schemas/JRubyPuppetContainer]
   [size :- schema/Int
-   config :- jruby-schemas/JRubyPuppetConfig]
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig]
   (log/infof "Creating %d JRubyPuppet container%s"
              size
              (if (= 1 size) "" "s"))
@@ -178,7 +154,8 @@
                    (log/infof "Creating JRubyPuppet container %d of %d"
                               (inc cnt)
                               size)
-                   (create-jruby-puppet-container config))))]
+                   (create-jruby-puppet-container jruby-config
+                                                  jruby-puppet-config))))]
     (log/infof "Finished creating %d JRubyPuppet container%s"
                size
                (if (= 1 size) "" "s"))
@@ -190,10 +167,11 @@
     (terminate-jruby-puppet-container pool-instance)))
 
 (defmacro with-jruby-puppets
-  [jruby-puppets size config & body]
+  [jruby-puppets size jruby-config jruby-puppet-config & body]
   `(let [jruby-puppet-containers# (create-jruby-puppet-containers
                                    ~size
-                                   ~config)
+                                   ~jruby-config
+                                   ~jruby-puppet-config)
          ~jruby-puppets (map :jruby-puppet jruby-puppet-containers#)]
      (try
        ~@body
@@ -230,7 +208,7 @@
    catalog-output-file :- File
    node-name :- schema/Str
    environment-name :- schema/Str
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    validate-class-name :- (schema/maybe schema/Str)]
   (let [catalog-response
         (request-handler-core/response->map

@@ -2,7 +2,8 @@
   (:require [puppetserver-memmeasure.scenario :as scenario]
             [puppetserver-memmeasure.schemas :as memmeasure-schemas]
             [puppetserver-memmeasure.util :as util]
-            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby-pool-manager.jruby-schemas :as jruby-schemas]
+            [puppetlabs.services.jruby.jruby-puppet-schemas :as jruby-puppet-schemas]
             [schema.core :as schema]
             [me.raynes.fs :as fs]
             [clojure.tools.logging :as log])
@@ -19,7 +20,8 @@
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext
    {:keys [environment-name nodes] :- memmeasure-schemas/ScenarioConfig}
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    iter :- schema/Int
    _]
   (doseq [{:keys [name expected-class-in-catalog]} nodes]
@@ -52,12 +54,14 @@
            environment-timeout
            nodes
            num-catalogs]} :- memmeasure-schemas/ScenarioConfig
-   jruby-puppet-config :- jruby-schemas/JRubyPuppetConfig
+   jruby-config :- jruby-schemas/JRubyConfig
+   jruby-puppet-config :- jruby-puppet-schemas/JRubyPuppetConfig
    mem-output-run-dir :- File
    scenario-context :- memmeasure-schemas/ScenarioContext]
   (let [step-base-name "catalog-group-by-catalog"]
     (util/with-jruby-puppet
      jruby-puppet
+     jruby-config
      jruby-puppet-config
      (scenario/run-scenario-body-over-steps
       (partial run-catalog-group-by-catalog-step
@@ -71,6 +75,7 @@
        :environment-name environment-name
        :environment-timeout environment-timeout
        :nodes nodes}
+      jruby-config
       jruby-puppet-config
       (range num-catalogs)))))
 
